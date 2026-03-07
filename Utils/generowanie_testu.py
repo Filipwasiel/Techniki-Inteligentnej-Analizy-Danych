@@ -25,7 +25,7 @@ data = {
 
 # Tworzenie DataFrame i zapis do Excela
 df = pd.DataFrame(data)
-nazwa_pliku = "wymagajacy_test.xlsx"
+nazwa_pliku = "wymagajacy_test1.xlsx"
 df.to_excel(nazwa_pliku, index=False)
 
 print(f"Gotowe! Plik '{nazwa_pliku}' został wygenerowany w Twoim folderze.")
