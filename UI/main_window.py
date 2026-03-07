@@ -1,14 +1,6 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit, QTextEdit, QComboBox, \
-    QListWidget, QHBoxLayout, QCheckBox, QSizePolicy, QGroupBox, QFormLayout, QSpinBox
-from PySide6.QtCore import Qt
-
-objects = [
-    'first object',
-    'second object',
-    'third object',
-    'fourth object',
-    'fifth object',
-]
+from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton,
+                               QLineEdit, QGroupBox, QFormLayout, QMessageBox)
+from Utils.settings_loader import load_settings, save_settings
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -18,7 +10,7 @@ class MainWindow(QMainWindow):
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         self.layout = QVBoxLayout(main_widget)
-        self.settings = {}
+        self.settings = load_settings()
 
         self.create_widgets()
 
@@ -58,4 +50,9 @@ class MainWindow(QMainWindow):
         self.file_label.setStyleSheet("color: green;")
 
     def save_user_settings(self):
-        print("Ustawienia zapisane!!")
+        new_settings = {
+            "font_size": self.font_size_input.text(),
+            "margin": self.margin_input.text(),
+        }
+        save_settings(new_settings)
+        QMessageBox.information(self, 'Zapisano', 'Ustawienia zostały zapisane!')
