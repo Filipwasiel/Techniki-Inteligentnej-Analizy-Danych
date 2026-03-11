@@ -10,7 +10,7 @@ def load_settings():
                 return json.load(f)
         except Exception:
             pass
-    return {'font_size': "11", 'marign': "2.0"}
+    return {'font_size': "11", 'marign': "2.0", 'page_numbers': True}
 
 def save_settings(settings):
     with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:

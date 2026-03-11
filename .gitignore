@@ -209,5 +209,5 @@ __marimo__/
 .idea
 
 settings.json
-
-Utils/wymagajacy_test.xlsx
+Utils/*test*
+Utils/*raport*

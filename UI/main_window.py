@@ -2,7 +2,7 @@ import os
 from Logic.converter import DocumentConverter
 from Utils.settings_loader import load_settings, save_settings
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton,
-                               QLineEdit, QGroupBox, QFormLayout, QMessageBox, QHBoxLayout, QFileDialog)
+                               QLineEdit, QGroupBox, QFormLayout, QMessageBox, QHBoxLayout, QFileDialog, QCheckBox)
 
 
 class MainWindow(QMainWindow):
@@ -39,8 +39,11 @@ class MainWindow(QMainWindow):
 
         self.font_size_input = QLineEdit(self.settings.get("font_size", "11"))
         self.margin_input = QLineEdit(self.settings.get("margin", "2.0"))
+        self.page_num_check = QCheckBox("Dodaj numery stron na dole")
+        self.page_num_check.setChecked(self.settings.get("page_numbers", True))
         form_layout.addRow("Font size: ", self.font_size_input)
         form_layout.addRow("Margin: ", self.margin_input)
+        form_layout.addRow("", self.page_num_check)
 
         btn_save = QPushButton("Save settings")
         btn_save.clicked.connect(self.save_user_settings)
@@ -66,7 +69,7 @@ class MainWindow(QMainWindow):
 
 
     def browse_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Excel file", "", "Excel Files (*.xlsx)")
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Excel file", "Utils", "Excel Files (*.xlsx)")
         if file_path:
             self.filepath = file_path
             self.file_label.setText(os.path.basename(file_path))
@@ -88,11 +91,14 @@ class MainWindow(QMainWindow):
         base_name = os.path.splitext(self.filepath)[0]
         docx_path = f"{base_name}.docx"
         title = self.title_entry.text()
-        font_size = self.font_size_input.text()
-        margin = self.margin_input.text()
+        config = {
+            "font_size": self.font_size_input.text(),
+            "margin": self.margin_input.text(),
+            "page_numbers": self.page_num_check.isChecked(),
+        }
 
         try:
-            DocumentConverter.generate_docx(self.filepath, docx_path, title, font_size, margin)
+            DocumentConverter.generate_docx(self.filepath, docx_path, title, config)
 
             if format_type == "docx":
                 QMessageBox.information(self, "Sukces", f"Zapisano plik:\n{docx_path}")
