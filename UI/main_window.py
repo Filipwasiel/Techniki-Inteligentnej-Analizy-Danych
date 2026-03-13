@@ -2,7 +2,8 @@ import os
 from Logic.converter import DocumentConverter
 from Utils.settings_loader import load_settings, save_settings
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton,
-                               QLineEdit, QGroupBox, QFormLayout, QMessageBox, QHBoxLayout, QFileDialog, QCheckBox)
+                               QLineEdit, QGroupBox, QFormLayout, QMessageBox, QHBoxLayout, QFileDialog, QCheckBox,
+                               QRadioButton, QButtonGroup)
 
 
 class MainWindow(QMainWindow):

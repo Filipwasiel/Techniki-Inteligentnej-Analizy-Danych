@@ -31,13 +31,21 @@ class DocumentConverter:
     @staticmethod
     def generate_docx(excel_path, output_path, title, config):
         df = pd.read_excel(excel_path)
-        df = df.drop(columns=["L.p."])
+        if "L.p." in df.columns:
+            df = df.drop(columns=["L.p."])
         df = df.fillna("")
         doc = Document()
         try:
             margin = Cm(float(config["margin"]))
         except ValueError:
             margin = Cm(2.0)
+
+        alignments_map = {
+            "Do lewej": WD_ALIGN_PARAGRAPH.LEFT,
+            "Do prawej": WD_ALIGN_PARAGRAPH.RIGHT,
+            "Wyjustuj": WD_ALIGN_PARAGRAPH.JUSTIFY,
+            "Do środka": WD_ALIGN_PARAGRAPH.CENTER,
+        }
 
         for section in doc.sections:
             section.top_margin = margin
@@ -58,12 +66,18 @@ class DocumentConverter:
 
         for index, row in df.iterrows():
             separator = doc.add_paragraph()
+            separator.paragraph_format.keep_with_next = True
             separator.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run_sep = separator.add_run(f"Rekord {index + 1}")
             run_sep.bold = True
             run_sep.font.size = Pt(int(config["font_size"]) + 2)
-            for name, val in row.items():
+            items = list(row.items())
+            for i, (name, val) in enumerate(items):
                 p = doc.add_paragraph()
+
+                if i < len(items) - 1:
+                    p.paragraph_format.keep_with_next = True
+                p.paragraph_format.keep_together = True
                 run_col = p.add_run(f"{DocumentConverter.clean_text(name)}: ")
                 run_col.bold = True
                 run_col.font.size = Pt(int(config["font_size"]))
