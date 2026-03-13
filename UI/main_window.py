@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         #Ustawienia związane z marginesami
         self.margin_val = QDoubleSpinBox()
         self.margin_val.setRange(0.5, 5.0)
-        self.margin_val.setValue(float(self.settings.get("margin_val", 2.0)))
+        self.margin_val.setValue(float(self.settings.get("margin", 2.0)))
         #Ustawienia związane linespacing
         self.line_spacing = QDoubleSpinBox()
         self.line_spacing.setRange(1.0, 3.0)
@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.line_spacing.setValue(float(self.settings.get("line_spacing", 1.15)))
         #Ustawienia związane z numerowaniem stron
         self.page_num_check = QCheckBox("Numerowanie stron")
-        self.page_num_check.setChecked(self.settings.get("page_numbers", True))
+        self.page_num_check.setChecked(True)
 
         #Formularz
         form_layout.addRow("Display format: ", self.combo_format)
@@ -96,7 +96,7 @@ class MainWindow(QMainWindow):
             "font_family": self.combo_font_name.currentText(),
             "font_size": self.font_size_input.text(),
             "line_spacing": str(self.line_spacing.value()),
-            "margin": str(self.margin_val.text()),
+            "margin": str(self.margin_val.value()),
         }
         save_settings(new_settings)
         QMessageBox.information(self, 'Saved', 'Settings were successfully saved!')
