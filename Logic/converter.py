@@ -5,6 +5,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.shared import Cm, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_ORIENTATION
 from docx2pdf import convert
 
 
@@ -41,6 +42,7 @@ class DocumentConverter:
         font_size = int(config.get("font_size", 12))
         line_spacing = float(config.get("line_spacing", 1.15))
         margin = Cm(float(str(config.get("margin", 2.0)).replace(',', '.')))
+        orientation = config.get("orientation", "Horizontal")
 
         style = doc.styles['Normal']
         style.font.name = font_name
@@ -51,6 +53,14 @@ class DocumentConverter:
         for section in doc.sections:
             section.top_margin = section.bottom_margin = margin
             section.left_margin = section.right_margin = margin
+            if orientation == "Horizontal":
+                section.orientation = WD_ORIENTATION.LANDSCAPE
+                new_width, new_height = section.page_height, section.page_width
+                section.page_width = new_width
+                section.page_height = new_height
+            else:
+                section.orientation = WD_ORIENTATION.PORTRAIT
+
             if config.get("page_numbers", True):
                 footer = section.footer
                 footer_p = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()

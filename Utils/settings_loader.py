@@ -10,7 +10,7 @@ def load_settings():
                 return json.load(f)
         except Exception:
             pass
-    return {'font_family': 'Arial','font_size': "11", 'line_spacing': '1.15', 'margin': "2.0"}
+    return {'font_family': 'Arial','font_size': "11", 'line_spacing': '1.15', 'margin': "2.0", 'orientation': 'Vertical'}
 
 def save_settings(settings):
     with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:

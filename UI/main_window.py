@@ -38,6 +38,10 @@ class MainWindow(QMainWindow):
         # Format wyświetlania danych
         self.combo_format = QComboBox()
         self.combo_format.addItems(["List", "Table"])
+
+        self.combo_orientation = QComboBox()
+        self.combo_orientation.addItems(["Vertical", "Horizontal"])
+        self.combo_orientation.setCurrentText(self.settings.get("orientation", "Vertical"))
         # Ustawienia związane z czcionką
         self.font_size_input = QLineEdit(self.settings.get("font_size", "11"))
         self.combo_font_name = QComboBox()
@@ -58,6 +62,7 @@ class MainWindow(QMainWindow):
 
         #Formularz
         form_layout.addRow("Display format: ", self.combo_format)
+        form_layout.addRow("Orientation: ", self.combo_orientation)
         form_layout.addRow("Font family: ", self.combo_font_name)
         form_layout.addRow("Font size: ", self.font_size_input)
         form_layout.addRow("Line spacing: ", self.line_spacing)
@@ -97,6 +102,7 @@ class MainWindow(QMainWindow):
             "font_size": self.font_size_input.text(),
             "line_spacing": str(self.line_spacing.value()),
             "margin": str(self.margin_val.value()),
+            "orientation": self.combo_orientation.currentText(),
         }
         save_settings(new_settings)
         QMessageBox.information(self, 'Saved', 'Settings were successfully saved!')
@@ -111,6 +117,7 @@ class MainWindow(QMainWindow):
         title = self.title_entry.text()
         config = {
             "format_type": self.combo_format.currentText(),
+            "orientation": self.combo_orientation.currentText(),
             "font_family": self.combo_font_name.currentText(),
             "font_size": self.font_size_input.text(),
             "line_spacing": self.line_spacing.value(),
