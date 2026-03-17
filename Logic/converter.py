@@ -43,6 +43,17 @@ class DocumentConverter:
         line_spacing = float(config.get("line_spacing", 1.15))
         margin = Cm(float(str(config.get("margin", 2.0)).replace(',', '.')))
         orientation = config.get("orientation", "Horizontal")
+        is_bold = config.get("bold_headers", True)
+        is_italic = config.get("italic_headers", False)
+        table_style = config.get("table_style", "Light Grid")
+        alignment_str = config.get("alignment", "To Left")
+        align_map = {
+            "To Left": WD_ALIGN_PARAGRAPH.LEFT,
+            "Centered": WD_ALIGN_PARAGRAPH.CENTER,
+            "To Right": WD_ALIGN_PARAGRAPH.RIGHT,
+            "Justify": WD_ALIGN_PARAGRAPH.JUSTIFY
+        }
+        text_alignment = align_map.get(alignment_str, WD_ALIGN_PARAGRAPH.LEFT)
 
         style = doc.styles['Normal']
         style.font.name = font_name
@@ -78,17 +89,19 @@ class DocumentConverter:
 
         if config.get("format_type") == "Table":
             table = doc.add_table(rows=1, cols=len(df.columns))
-            table.style = 'Light Grid'
+            table.style = table_style
             # Nagłówki kolumny
             hdr_cells = table.rows[0].cells
             for i, column in enumerate(df.columns):
                 hdr_cells[i].text = str(column)
                 for paragraph in hdr_cells[i].paragraphs:
+                    paragraph.alignment = text_alignment
                     paragraph.paragraph_format.line_spacing = line_spacing
                     for run in paragraph.runs:
                         run.font.name = font_name
                         run.font.size = Pt(font_size)
-                        run.font.bold = True
+                        run.font.bold = is_bold
+                        run.font.italic = is_italic
 
             # Powtarzanie nagłówków co strona
             tr = table.rows[0]._tr
@@ -106,6 +119,7 @@ class DocumentConverter:
                 for i, val in enumerate(row):
                     row_cells[i].text = DocumentConverter.clean_text(val)
                     for paragraph in row_cells[i].paragraphs:
+                        paragraph.alignment = text_alignment
                         paragraph.paragraph_format.line_spacing = line_spacing
                         for run in paragraph.runs:
                             run.font.name = font_name
@@ -124,19 +138,21 @@ class DocumentConverter:
                 separator.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run_sep = separator.add_run(f"Rekord {index + 1}")
                 run_sep.bold = True
-                run_sep.name = font_name
+                run_sep.font.name = font_name
                 run_sep.font.size = Pt(font_size + 2)
                 # Właściwe wiersze z danymi
                 items = list(row.items())
                 for i, (name, val) in enumerate(items):
                     p = doc.add_paragraph()
+                    p.alignment = text_alignment
                     p.paragraph_format.line_spacing = line_spacing
                     if i < len(items) - 1:
                         p.paragraph_format.keep_with_next = True
                     p.paragraph_format.keep_together = True
                     # Klucz dla elementu listy
                     run_col = p.add_run(f"{DocumentConverter.clean_text(name)}: ")
-                    run_col.bold = True
+                    run_col.font.bold = is_bold
+                    run_col.font.italic = is_italic
                     run_col.font.name = font_name
                     run_col.font.size = Pt(font_size)
                     # Wartość dla elementu listy
