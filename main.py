@@ -1,5 +1,12 @@
 import sys
 import os
+try:
+    import six
+    for importer in sys.meta_path:
+        if type(importer).__name__ == "_SixMetaPathImporter":
+            importer._path = None
+except ImportError:
+    pass
 if sys.stdout is None or sys.stderr is None:
     class DummyStream:
         def write(self, data):
