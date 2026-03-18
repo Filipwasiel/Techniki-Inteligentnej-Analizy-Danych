@@ -32,8 +32,6 @@ class DocumentConverter:
     @staticmethod
     def generate_docx(excel_path, output_path, title, config):
         df = pd.read_excel(excel_path)
-        if "L.p." in df.columns:
-            df = df.drop(columns=["L.p."])
         df = df.fillna("")
         doc = Document()
 
@@ -124,13 +122,9 @@ class DocumentConverter:
                         for run in paragraph.runs:
                             run.font.name = font_name
                             run.font.size = Pt(font_size)
-                current_tr = table.rows[-1]._tr
-                current_trPr = current_tr.get_or_add_trPr()
-                current_cantSplit = OxmlElement('w:cantSplit')
-                current_cantSplit.set(qn('w:val'), 'true')
-                current_trPr.append(current_cantSplit)
         else:
             # Lista
+            columns_to_ignore = ['lp', 'l.p.', 'l.p', 'lp.', 'id', 'no', 'nr']
             for index, row in df.iterrows():
                 # Separatory z Numeracją rekordów
                 separator = doc.add_paragraph()
@@ -142,13 +136,13 @@ class DocumentConverter:
                 run_sep.font.size = Pt(font_size + 2)
                 # Właściwe wiersze z danymi
                 items = list(row.items())
-                for i, (name, val) in enumerate(items):
+                valid_items = [(name, val) for name, val in items if str(name).strip().lower() not in columns_to_ignore]
+                for i, (name, val) in enumerate(valid_items):
                     p = doc.add_paragraph()
                     p.alignment = text_alignment
                     p.paragraph_format.line_spacing = line_spacing
                     if i < len(items) - 1:
                         p.paragraph_format.keep_with_next = True
-                    p.paragraph_format.keep_together = True
                     # Klucz dla elementu listy
                     run_col = p.add_run(f"{DocumentConverter.clean_text(name)}: ")
                     run_col.font.bold = is_bold
