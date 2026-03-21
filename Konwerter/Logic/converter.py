@@ -13,7 +13,7 @@ class DocumentConverter:
     @staticmethod
     def clean_text(text):
         text = str(text)
-        return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', text)
+        return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\x0a\x0d]', ' ', text)
 
     @staticmethod
     def add_page_number(run):

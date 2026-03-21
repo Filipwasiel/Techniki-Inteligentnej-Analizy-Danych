@@ -207,3 +207,9 @@ marimo/_lsp/
 __marimo__/
 
 .idea
+
+settings.json
+Utils/*test*
+Utils/*raport*
+
+*raport*
