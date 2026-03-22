@@ -7,7 +7,6 @@ except OSError:
     raise
 
 def filter_ingredients(text: str) -> list[str]:
-    # nlp = pl_core_news_sm.load()
     doc = nlp(text)
     caught_ingredients = []
     for w in doc:
