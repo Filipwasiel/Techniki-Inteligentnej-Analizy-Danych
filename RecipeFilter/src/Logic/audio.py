@@ -1,21 +1,22 @@
-import whisper
+from faster_whisper import WhisperModel
+from deep_translator import GoogleTranslator # Darmowe i nielimitowane dla małych tekstów
+import os
 
-print("Ładowanie modelu...")
-model = whisper.load_model("turbo")
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+model = WhisperModel("turbo", device="cpu", compute_type="int8")
 
-def transcribe_audio(audio_path: str) -> dict:
-    audio = whisper.load_audio(audio_path)
-    audio = whisper.pad_or_trim(audio)
-    # make log-Mel spectrogram and move to the same device as the model
-    mel = whisper.log_mel_spectrogram(audio, n_mels=model.dims.n_mels).to(model.device)
+def get_transcription(audio_path: str):
+    """Whisper zajmuje się tylko zamianą mowy na tekst (zawsze oryginał)."""
+    segments, info = model.transcribe(audio_path, beam_size=5)
+    text = " ".join([s.text for s in segments]).strip()
+    return {"tekst": text, "jezyk": info.language}
 
-    # detect the spoken language
-    _, probs = model.detect_language(mel)
-    print(f"Detected language: {max(probs, key=probs.get)}")
-
-    # decode the audio
-    options = whisper.DecodingOptions()
-    result = whisper.decode(model, mel, options)
-
-    # print the recognized text
-    return {"tekst": result.text, "jezyk": result.language}
+def get_translation(text: str, target_lang: str = 'en'):
+    """Nowa funkcja: tłumaczy gotowy tekst na dowolny język."""
+    if not text:
+        return ""
+    try:
+        translated = GoogleTranslator(source='auto', target=target_lang).translate(text)
+        return translated
+    except Exception as e:
+        return f"Błąd tłumaczenia: {e}"

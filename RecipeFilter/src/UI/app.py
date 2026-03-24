@@ -6,79 +6,105 @@ import sys
 # aby Python widział folder 'src' i nasze importy działały poprawnie.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.Logic.audio import transcribe_audio
+# Importujemy zoptymalizowane funkcje z logiki
+from src.Logic.audio import get_transcription, get_translation 
 from src.Logic.nlp import filter_ingredients
 from src.Logic.filter import filter_recipes, RECIPE_BASE
 
-# Konfiguracja strony
-st.set_page_config(page_title="Inteligentne Przepisy", page_icon="🍳", layout="centered")
+# 1. KONFIGURACJA STRONY
+st.set_page_config(
+    page_title="Inteligentne Przepisy", 
+    page_icon="🍳", 
+    layout="centered"
+)
 
+# Stylizacja nagłówka
 st.title("🍳 Inteligentna Wyszukiwarka Przepisów")
-st.markdown("Opowiedz mi, jakie masz składniki, a znajdę dla Ciebie idealny przepis!")
+st.markdown("Opowiedz mi lub prześlij nagranie ze składnikami, a znajdę dla Ciebie przepis!")
 
-# Panel boczny z opcjami "na ocenę 5"
+# 2. PANEL BOCZNY (Sidebar)
 with st.sidebar:
     st.header("⚙️ Ustawienia")
-    tlumacz = st.checkbox("🇬🇧 Przetłumacz na angielski (Whisper)")
+    tlumacz = st.checkbox("🇬🇧 Dodaj tłumaczenie na angielski")
     st.markdown("---")
-    st.markdown("**Baza zawiera przepisy:**")
+    st.markdown("**Dostępne przepisy w bazie:**")
     for p in RECIPE_BASE:
         st.markdown(f"- {p['nazwa']}")
+    st.markdown("---")
+    st.caption("Infrastruktura: west-germany")
 
-# Wbudowany widżet Streamlit do nagrywania mowy z mikrofonu
-audio_value = st.audio_input("Naciśnij ikonę mikrofonu i powiedz, co masz w lodówce:")
+# 3. WYBÓR ŹRÓDŁA DŹWIĘKU (Tabs)
+tab1, tab2 = st.tabs(["🎤 Nagraj mowę", "📁 Wczytaj plik audio"])
+audio_source = None
 
-if audio_value is not None:
-    st.success("Nagranie zarejestrowane! Przetwarzam...")
+with tab1:
+    audio_mic = st.audio_input("Naciśnij ikonę mikrofonu i wymień składniki:")
+    if audio_mic: 
+        audio_source = audio_mic
 
-    # Zapisujemy nagranie z przeglądarki do tymczasowego pliku .wav
-    temp_audio_path = "temp_recording.wav"
-    with open(temp_audio_path, "wb") as f:
-        f.write(audio_value.getbuffer())
+with tab2:
+    audio_file = st.file_uploader("Wybierz plik audio (wav, mp3, m4a):", type=["wav", "mp3", "m4a"])
+    if audio_file: 
+        audio_source = audio_file
 
-    with st.spinner("🤖 Model Whisper analizuje mowę..."):
-        # KROK 1: Rozpoznawanie mowy (z ewentualnym tłumaczeniem)
-        wynik_audio = transcribe_audio(temp_audio_path)
+# 4. GŁÓWNA LOGIKA PRZETWARZANIA
+if audio_source is not None:
+    temp_path = "temp_audio.wav"
+    
+    # Zapisujemy bufor do pliku tymczasowego
+    with open(temp_path, "wb") as f:
+        f.write(audio_source.getbuffer())
 
-    st.markdown("### 🎙️ Wyniki transkrypcji:")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info(f"**Wykryty język:** `{wynik_audio['jezyk'].upper()}`")
-    with col2:
-        st.info(f"**Rozpoznany tekst:** {wynik_audio['tekst']}")
+    try:
+        # --- KROK 1: TRANSKRYPCJA (Oryginał dla NLP) ---
+        with st.spinner("🤖 Whisper: Rozpoznawanie mowy..."):
+            wynik_pl = get_transcription(temp_path)
+        
+        # Wyświetlanie wyników transkrypcji
+        st.markdown(f"### 🌐 Wyniki ({wynik_pl['jezyk'].upper()}):")
+        st.info(f"**Tekst oryginalny:** {wynik_pl['tekst']}")
 
-    with st.spinner("🧠 Model NLP wyciąga składniki..."):
-        # KROK 2: Analiza tekstu
-        # Jeśli tłumaczyliśmy na angielski, polski model NLP może zgłupieć,
-        # więc do wyciągania składników bezpieczniej jest nie używać przetłumaczonego tekstu
-        # (Chyba że chcesz w projekcie analizować też angielski, to temat na małą rozbudowę).
-        # Załóżmy na razie, że NLP przetwarza tekst oryginalny:
+        # --- KROK 2: TŁUMACZENIE (Opcjonalnie) ---
         if tlumacz:
-            wynik_oryginalny = transcribe_audio(temp_audio_path)
-            skladniki = filter_ingredients(wynik_oryginalny['tekst'])
+            with st.spinner("🇬🇧 Whisper: Tłumaczenie na angielski..."):
+                odpowiedz_en = get_translation(wynik_pl['tekst'], target_lang='en')
+                
+                # Obsługa formatu zwrotnego (słownik lub string)
+                tekst_en = odpowiedz_en.get('tekst', '') if isinstance(odpowiedz_en, dict) else odpowiedz_en
+                
+                st.markdown("### 🇬🇧 English Translation:")
+                st.success(f"**Translated text:** {tekst_en}")
+
+        # --- KROK 3: ANALIZA NLP (Składniki) ---
+        with st.spinner("🧠 Model NLP: Analiza składników..."):
+            # Analizujemy zawsze tekst oryginalny, bo spaCy jest ustawiony na PL
+            skladniki = filter_ingredients(wynik_pl['tekst'])
+
+        # --- KROK 4: PREZENTACJA WYNIKÓW ---
+        if skladniki:
+            st.markdown("### 🛒 Wykryte składniki:")
+            unikalne = list(set(skladniki))
+            # Wyświetlamy sformatowaną listę
+            st.success(", ".join(unikalne).title())
+
+            # Filtrowanie przepisów
+            znalezione = filter_recipes(unikalne, RECIPE_BASE)
+            
+            st.markdown("### 🍽️ Pasujące przepisy:")
+            if znalezione:
+                for p in znalezione:
+                    with st.expander(f"✅ {p['nazwa']}"):
+                        st.write(f"**Potrzebne składniki:** {', '.join(p['skladniki'])}")
+                        st.markdown(f"**Instrukcja:** \n {p['instrukcja']}")
+            else:
+                st.warning("Nie znalazłem przepisu zawierającego te składniki w naszej bazie.")
         else:
-            skladniki = filter_ingredients(wynik_audio['tekst'])
+            st.error("Nie wykryto żadnych znanych składników. Spróbuj powiedzieć np. 'mam jajka, mleko i mąkę'.")
 
-    st.markdown("### 🛒 Wykryte składniki:")
-    if skladniki:
-        # Usuwamy ewentualne duplikaty na poziomie wyświetlania
-        unikalne_skladniki = list(set(skladniki))
-        st.success(", ".join(unikalne_skladniki).title())
-
-        # KROK 3: Filtrowanie przepisów
-        znalezione = filter_recipes(unikalne_skladniki, RECIPE_BASE)
-
-        st.markdown("### 🍽️ Pasujące przepisy:")
-        if znalezione:
-            for przepis in znalezione:
-                with st.expander(f"✅ {przepis['nazwa']}"):
-                    st.write(f"**Potrzebne składniki:** {', '.join(przepis['skladniki'])}")
-                    st.write(f"**Instrukcja:** {przepis['instrukcja']}")
-        else:
-            st.warning("Niestety, nie znalazłem przepisu zawierającego WSZYSTKIE te składniki.")
-    else:
-        st.error("Nie usłyszałem żadnych konkretnych składników. Spróbuj jeszcze raz!")
-
-    # Sprzątanie tymczasowego pliku
-    if os.path.exists(temp_audio_path):
-        os.remove(temp_audio_path)
+    except Exception as e:
+        st.error(f"Wystąpił krytyczny błąd podczas przetwarzania: {e}")
+    
+    finally:
+        # Sprzątanie - usuwamy plik tymczasowy po zakończeniu pracy
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
