@@ -1,0 +1,8 @@
+streamlit==1.55.0
+spacy==3.8.0
+setuptools>=82.0.1
+faster-whisper==1.2.1
+torch==2.10.0
+deep-translator==1.11.4
+nvidia-cublas-cu12 
+nvidia-cudnn-cu12
