@@ -1,4 +1,4 @@
-from tensorflow.keras import layers, models
+from keras import layers, models
 
 def build_cnn_model(input_shape=(128,128,3)):
    model = models.Sequential([

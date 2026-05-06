@@ -1,10 +1,16 @@
 # main.py
-import config
-from data_loader import load_data
-from model import build_cnn_model
-from evaluate import evaluate_and_plot
+from src import config
+from src.data_loader import load_data
+from src.model import build_cnn_model
+from src.evaluate import evaluate_and_plot
+from src import data_manager
+import tensorflow as tf
 
 def main():
+    print(tf.config.list_physical_devices('GPU'))
+
+    data_manager.initialize_raw_data()
+    data_manager.split_data(train_split=0.7)
     print("1. Ładowanie danych z dysku...")
     train_ds, test_ds = load_data()
 
