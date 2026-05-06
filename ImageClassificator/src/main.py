@@ -1,10 +1,20 @@
 # main.py
+import logging
+
 from src import config
 from src.data_loader import load_data
 from src.model import build_cnn_model
 from src.evaluate import evaluate_and_plot
 from src import data_manager
 import tensorflow as tf
+import os
+import logging
+
+# 0 = all, 1 = no INFO, 2 = no INFO/WARNING, 3 = no INFO/WARNING/ERROR
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+tf.get_logger().setLevel(logging.ERROR)
+
+
 
 def main():
     print(tf.config.list_physical_devices('GPU'))
@@ -23,7 +33,8 @@ def main():
     history = model.fit(
         train_ds,
         epochs=config.EPOCHS,
-        validation_data=test_ds
+        validation_data=test_ds,
+        verbose=2
     )
 
     print("4. Generowanie raportów...")
