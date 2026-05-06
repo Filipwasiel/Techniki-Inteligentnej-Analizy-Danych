@@ -1,131 +1,272 @@
 # Image Classificator
 
-A binary image classification project using TensorFlow/Keras CNN to classify images (e.g., cats vs. dogs).
+Binary image classification (Cats vs Dogs) z **automatycznym systemem eksperymentów** obsługującym wiele modeli i różne podziały danych.
 
-## 📋 Table of Contents
+---
 
-- [Overview](#overview)
-- [Dataset](#dataset)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Model Architecture](#model-architecture)
-- [Evaluation](#evaluation)
-- [Testing](#testing)
-- [Results](#results)
+## 📋 Wymagania Systemowe
 
-## 🎯 Overview
+- **Python:** 3.10
+- **zainstalowane zależności**
+---
 
-This project implements a Convolutional Neural Network (CNN) for binary image classification tasks. It includes:
-- Data loading and preprocessing with TensorFlow
-- CNN model training and evaluation
-- Classification metrics and visualization
-- Unit tests for model and data loader components
+## 🚀 Instalacja i Uruchomienie
 
+### 1. Przygotowanie Środowiska
+
+#### Windows
+```bash
+# Klon repozytorium
+git clone <repository-url>
+cd ImageClassificator
+
+# Tworzenie virtual environment
+python -3.10 -m venv venv  
+venv\Scripts\activate
+
+# Instalacja zależności
+pip install -r requirements.txt
+```
+
+#### macOS/Linux
+```bash
+git clone <repository-url>
+cd ImageClassificator
+
+python -3.10 -m venv venv  
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+### 2. Uruchomienie Eksperymentów
+
+```bash
+python -m src.main
+```
+
+**Co się stanie:**
+1. Automatycznie pobierze dataset z Kaggle
+2. Przygotuje dane (weryfikacja obrazów, split)
+3. Uruchomi eksperymenty z konfiguracją z `src/main.py`
+4. Zapisze wyniki do `results/experiments_YYYYMMDD_HHMMSS/`
+
+---
 ## 📊 Dataset
 
 ### Source
 
 The dataset is obtained from **Kaggle**. You can download it from:
-- **Kaggle Dataset URL**: https://www.kaggle.com/datasets/samuelcortinhas/cats-and-dogs-image-classification/data
+- **Kaggle Dataset URL**: https://www.kaggle.com/datasets/shaunthesheep/microsoft-catsvsdogs-dataset
 
-### Directory Structure
+## 🎯 Jak Testować Różne Modele i Podziały
 
-After downloading, organize your data as follows:
+Edytuj plik `src/main.py`, funkcja `main()` (linia ~182):
 
-```
-data/
-├── train/
-│   ├── class_0/
-│   │   ├── image_1.jpg
-│   │   ├── image_2.jpg
-│   │   └── ...
-│   └── class_1/
-│       ├── image_1.jpg
-│       ├── image_2.jpg
-│       └── ...
-└── test/
-    ├── class_0/
-    │   ├── image_1.jpg
-    │   └── ...
-    └── class_1/
-        ├── image_1.jpg
-        └── ...
+```python
+def main():
+    """Main entry point"""
+    print(f"\nGPU dostępne: {tf.config.list_physical_devices('GPU')}")
+    
+    # ⬇️ ZMIEŃ TUTAJ ⬇️
+    experiments = {
+        'model_names': ['simple_cnn', 'mobilenet', 'resnet'],  # Wybrane modele
+        'train_splits': [0.7, 0.8, 0.9],                       # Podziały danych
+        'results_dir': 'results'
+    }
+    
+    results = run_experiments(**experiments)
+    return results
 ```
 
-### Data Preparation
+### Dostępne Modele
 
-1. Download your dataset from Kaggle
-2. Extract the files to the `data/` directory
-3. Ensure images are organized in subdirectories by class
-4. The data loader will automatically:
-   - Resize images to 128x128 pixels
-   - Normalize pixel values to [0, 1]
-   - Create batches for efficient processing
-   - Apply caching and prefetching for performance
+```
+'simple_cnn'  # Mały CNN (3 warstwy Conv) - szybki
+'mobilenet'   # Lekki model - dobry balans szybkości i dokładności
+'resnet'      # Ciężki model - najwyższa dokładność
+```
 
-## 📁 Project Structure
+### Dostępne Podziały
+
+```python
+'train_splits': [0.3, 0.5, 0.7, 0.9]  # Procent danych treningowych
+```
+
+Np. `0.7` = 70% train, 30% test
+
+---
+
+## 📁 Struktura Projektu
 
 ```
 ImageClassificator/
-├── src/
-│   ├── __init__.py           # Package initialization
-│   ├── main.py               # Main training script
-│   ├── config.py             # Configuration parameters
-│   ├── model.py              # CNN model definition
-│   ├── data_loader.py        # Data loading and preprocessing
-│   └── evaluate.py           # Evaluation and visualization
-├── tests/
-│   ├── model_test.py         # Model architecture tests
-│   └── data_loader_test.py   # Data loader tests
-├── data/                     # Dataset directory (not in repo)
-│   ├── train/                # Training images
-│   └── test/                 # Test images
-└── README.md                 # This file
+├── src/                          # Kod źródłowy
+│   ├── config.py                 # Konfiguracja: IMG_SIZE, BATCH_SIZE, EPOCHS
+│   ├── main.py                   # ⭐ Eksperymentator - tutaj zmienia się co testować
+│   ├── models_factory.py         # ⭐ Wszystkie modele (SimpleCNN, MobileNet, ResNet)
+│   ├── data_manager.py           # Pobieranie i split danych
+│   ├── data_loader.py            # TensorFlow Dataset (resize, normalizacja)
+│   └── evaluate.py               # Zapis wyników (PNG, JSON, TXT)
+│
+├── data/                         # 📥 Dane (tworzone automatycznie)
+│   ├── raw/                      # Oryginalne zdjęcia (pobrane z Kaggle)
+│   ├── train/                    # Trenowanie
+│   │   ├── Cat/
+│   │   └── Dog/
+│   └── test/                     # Test
+│       ├── Cat/
+│       └── Dog/
+│
+├── results/                      # 📊 Wyniki eksperymentów (tworzone automatycznie)
+│   └── experiments_20250506_123456/
+│       ├── SUMMARY.txt
+│       ├── simple_cnn_split_70_30/
+│       │   ├── confusion_matrix.png
+│       │   ├── accuracy_plot.png
+│       │   ├── metrics.json
+│       │   └── classification_report.txt
+│       ├── mobilenet_split_70_30/
+│       │   └── [same files]
+│       └── resnet_split_70_30/
+│           └── [same files]
+│
+├── requirements.txt              # Zależności Python
+├── README.md                     # Dokumentacja
+└── STRUCTURE.md                  # Szczegółowa dokumentacja struktury
 ```
 
-## 🚀 Installation
+---
 
-### Prerequisites
+## 📊 Struktura Wyników
 
-- Python 3.8 or higher
-- pip package manager
+Każdy eksperyment tworzy folder `<model_name>_split_<train>_<test>/` zawierający:
 
-### Setup
+### confusion_matrix.png
+Macierz pomyłek - wizualizacja gdzie model się myli:
+- **True Positives (górny lewy):** Prawidłowe klasyfikacje klasy 0 (Koty)
+- **False Negatives (górny prawy):** Błędy klasy 0
+- **False Positives (dolny lewy):** Błędy klasy 1
+- **True Negatives (dolny prawy):** Prawidłowe klasyfikacje klasy 1 (Psy)
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ImageClassificator
-   ```
+### accuracy_plot.png
+Krzywe uczenia - jak model się uczy:
+- **Niebieska linia:** Dokładność na zbiorze treningowym
+- **Pomarańczowa linia:** Dokładność na zbiorze walidacyjnym
+- Jeśli się rozchodzą = overfitting
 
-2. **Create a virtual environment** (optional but recommended)
-   ```bash
-   python -m venv venv
-   
-   # On Windows:
-   venv\Scripts\activate
-   
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
+### metrics.json
+Metryki w formacie JSON:
+```json
+{
+  "accuracy": 0.856,      # Procent prawidłowych klasyfikacji
+  "precision": 0.871,     # Jakość pozytywnych predykcji
+  "recall": 0.823,        # Ile pozytywnych przypadków znaleziono
+  "f1_score": 0.846       # Średnia ważona precision i recall
+}
+```
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-   
-## 🏃 Usage
+### classification_report.txt
+Raport tekstowy dla każdej klasy:
+```
+             precision    recall  f1-score   support
 
-### Training the Model
+       Cats       0.82      0.85      0.83       250
+       Dogs       0.90      0.88      0.89       250
 
-Run the main training script:
+    accuracy                           0.86       500
+```
+
+### SUMMARY.txt
+Ogólne podsumowanie wszystkich eksperymentów z tego przebiegu.
+
+---
+
+## ⚙️ Konfiguracja
+
+### src/config.py
+
+```python
+TRAIN_DIR = '../data/train'    # Ścieżka do danych treningowych
+TEST_DIR = '../data/test'      # Ścieżka do danych testowych
+IMG_SIZE = (128, 128)          # Rozmiar obrazu
+BATCH_SIZE = 64                # Liczba obrazów na batch
+EPOCHS = 20                    # Liczba epok trenowania
+```
+
+### src/main.py (eksperymenty)
+
+```python
+experiments = {
+    'model_names': ['simple_cnn'],        # Które modele testować
+    'train_splits': [0.6, 0.7, 0.8, 0.9], # Jakie podziały danych
+    'results_dir': 'results'               # Gdzie zapisywać wyniki
+}
+```
+
+---
+
+## 🧠 Dostępne Modele
+
+### SimpleCNN ✅
+- **Rozmiar:** Mały (~2M parametrów)
+- **Szybkość:** Bardzo szybki
+- **Dokładność:** Przeciętna (60-75%)
+- **Opis:** 3 warstwy konwolucyjne + Dense layers
+
+### MobileNet ✅
+- **Rozmiar:** Średni (~4M parametrów)
+- **Szybkość:** Szybki
+- **Dokładność:** Dobra (75-85%)
+- **Opis:** Lekki model bazujący na MobileNetV2
+
+### ResNet ✅
+- **Rozmiar:** Duży (~25M parametrów)
+- **Szybkość:** Wolniejszy
+- **Dokładność:** Bardzo dobra (85-92%)
+- **Opis:** ResNet50 z residual connections
+
+---
+
+## 🔧 Dodatkowe Polecenia
+
+### Sprawdzenie dostępnych modeli
 
 ```bash
-cd src
-python main.py
+python -c "from src.models_factory import list_available_models; print(list_available_models())"
 ```
 
+### Usuwanie starych wyników
 
-**Last Updated**: 2026-04-28
+```bash
+rm -rf results/  # macOS/Linux
+rmdir /s results # Windows
+```
+
+### Czyszczenie cache
+
+```bash
+rm -rf src/__pycache__  # macOS/Linux
+rmdir /s src\__pycache__ # Windows
+```
+
+---
+
+## 🚨 Rozwiązywanie Problemów
+
+### Problem: "ModuleNotFoundError: No module named 'tensorflow'"
+
+```bash
+# Zainstaluj znowu requirements
+pip install --upgrade -r requirements.txt
+```
+
+### Problem: GPU nie jest wykrywane
+
+```python
+# W src/main.py, linia ~179
+print(f"\nGPU dostępne: {tf.config.list_physical_devices('GPU')}")
+# Jeśli puste - TensorFlow będzie używać CPU (wolniejsze ale działa)
+```
+
+**Ostatnia aktualizacja:** 2026-05-06

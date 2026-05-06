@@ -2,5 +2,5 @@ TRAIN_DIR = '../data/train'
 TEST_DIR = '../data/test'
 
 IMG_SIZE = (128, 128)
-BATCH_SIZE = 32
-EPOCHS = 10
+BATCH_SIZE = 64
+EPOCHS = 20
