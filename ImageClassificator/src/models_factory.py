@@ -3,7 +3,8 @@ from abc import ABC, abstractmethod
 from tensorflow.keras import layers, models
 from src import config
 import tensorflow as tf
-from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow.keras.applications.resnet50 import preprocess_input as resnet_preprocess
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobile_preprocess
 
 class BaseModel(ABC):
     # DODANO: num_classes w __init__
@@ -55,15 +56,15 @@ class MobileNetModel(BaseModel):
         base_model.trainable = False
         self.model = models.Sequential([
             layers.Input(shape=self.input_shape),
-            layers.Rescaling(1./255),
+            layers.Lambda(mobile_preprocess), 
             base_model,
             layers.GlobalAveragePooling2D(),
             layers.Dropout(0.3),
-            layers.Dense(self.num_classes, activation='softmax') # ZMIANA
+            layers.Dense(self.num_classes, activation='softmax') 
         ])
         self.model.compile(
             optimizer='adam',
-            loss='sparse_categorical_crossentropy', # ZMIANA
+            loss='sparse_categorical_crossentropy', 
             metrics=['accuracy']
         )
 
@@ -75,15 +76,15 @@ class ResNetModel(BaseModel):
         base_model.trainable = False 
         self.model = models.Sequential([
             layers.Input(shape=self.input_shape),
-            layers.Lambda(preprocess_input),
+            layers.Lambda(resnet_preprocess),
             base_model,
             layers.GlobalAveragePooling2D(),
             layers.Dropout(0.4),
-            layers.Dense(self.num_classes, activation='softmax') # ZMIANA
+            layers.Dense(self.num_classes, activation='softmax') 
         ])
         self.model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-            loss='sparse_categorical_crossentropy', # ZMIANA
+            loss='sparse_categorical_crossentropy', 
             metrics=['accuracy']
         )
 
@@ -93,7 +94,6 @@ MODEL_REGISTRY = {
     'resnet': ResNetModel,
 }
 
-# DODANO: num_classes w argumentach funkcji
 def create_model(model_name: str, input_shape=None, num_classes=2) -> BaseModel:
     if model_name not in MODEL_REGISTRY:
         raise ValueError(f"Model '{model_name}' not found.")
