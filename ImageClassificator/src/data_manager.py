@@ -9,7 +9,7 @@ from PIL import Image
 # ==========================================
 SELECTED_CLASSES = [
     'apple_pie', 'hamburger', 'chicken_curry', 'donuts', 'french_fries', 
-    'ice_cream', 'pizza', 'sushi', 'tacos', 'omelette'
+    'ice_cream', 'pizza', 'sushi', 'tacos', 'omelette','beef_carpaccio'
 ]
 LIMIT_PER_CLASS = 500 
 
