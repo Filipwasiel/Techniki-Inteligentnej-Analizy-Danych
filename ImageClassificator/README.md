@@ -21,7 +21,7 @@ git clone <repository-url>
 cd ImageClassificator
 
 # Tworzenie virtual environment
-python -3.10 -m venv venv  
+py -3.10 -m venv venv  
 venv\Scripts\activate
 
 # Instalacja zależności

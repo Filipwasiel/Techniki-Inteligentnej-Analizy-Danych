@@ -7,7 +7,7 @@ from sklearn.metrics import classification_report, confusion_matrix, ConfusionMa
 import os
 import json
 
-def evaluate_and_plot(model, test_ds, history, output_dir=None, split_info=""):
+def evaluate_and_plot(model, test_ds, history, class_names, output_dir=None, split_info=""):
     """
     Evaluate model and save results to disk
     
@@ -15,26 +15,27 @@ def evaluate_and_plot(model, test_ds, history, output_dir=None, split_info=""):
         model: Trained model
         test_ds: Test dataset
         history: Training history
+        class_names: List of class names
         output_dir: Directory to save results (if None, only print)
         split_info: String with split info (e.g., "split_60_40")
     """
     print("\n--- EWALUACJA MODELU ---")
 
     y_true = []
-    for images, labels in test_ds:
+    for _, labels in test_ds:
         y_true.extend(labels.numpy())
     y_true = np.array(y_true)
 
-    y_pred_probs = model.predict(test_ds, verbose=0)
-    y_pred = (y_pred_probs > 0.5).astype(int)
+    y_pred_probs = model.predict(test_ds)
+    y_pred = np.argmax(y_pred_probs, axis=1) 
 
     # Calculate metrics
     accuracy = accuracy_score(y_true, y_pred)
-    precision = precision_score(y_true, y_pred)
-    recall = recall_score(y_true, y_pred)
-    f1 = f1_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred, average='weighted', zero_division=0)
+    recall = recall_score(y_true, y_pred, average='weighted', zero_division=0)
+    f1 = f1_score(y_true, y_pred, average='weighted', zero_division=0)
     
-    report = classification_report(y_true, y_pred, target_names=['Cats', 'Dogs'])
+    report = classification_report(y_true, y_pred, target_names=class_names)
     
     print(f"\nRaport klasyfikacji ({split_info}):")
     print(report)
@@ -50,9 +51,9 @@ def evaluate_and_plot(model, test_ds, history, output_dir=None, split_info=""):
         
         # 1. Save confusion matrix
         cm = confusion_matrix(y_true, y_pred)
-        plt.figure(figsize=(8, 6))
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Cats', 'Dogs'])
-        disp.plot(cmap=plt.cm.Blues)
+        plt.figure(figsize=(10, 8)) # Zwiększyłem trochę rozmiar, żeby napisy się nie nakładały
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+        disp.plot(cmap=plt.cm.Blues, ax=plt.gca(), xticks_rotation=45) # Używamy bieżącej osi
         plt.title(f'Macierz Pomyłek ({split_info})')
         plt.tight_layout()
         confusion_path = os.path.join(output_dir, 'confusion_matrix.png')

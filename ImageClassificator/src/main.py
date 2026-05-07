@@ -4,6 +4,7 @@ import os
 import sys
 import datetime
 from pathlib import Path
+from xml.parsers.expat import model
 
 import tensorflow as tf
 
@@ -11,6 +12,7 @@ from src import config, data_manager
 from src.data_loader import load_data
 from src.models_factory import create_model
 from src.evaluate import evaluate_and_plot
+from src.data_manager import SELECTED_CLASSES
 
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -42,12 +44,14 @@ def run_single_experiment(model_name: str, train_split: float, output_dir: str):
         
         # 2. Load data
         print("2. Ładowanie danych z dysku...")
-        train_ds, test_ds = load_data()
-        
+        train_ds, test_ds, class_names = load_data()
+        num_detected_classes = len(class_names)
+        print(f"Wykryto klas: {num_detected_classes}")
+
         # 3. Create and build model
         print("3. Budowanie struktury modelu...")
         input_shape = (config.IMG_SIZE[0], config.IMG_SIZE[1], 3)
-        model = create_model(model_name, input_shape)
+        model = create_model(model_name, input_shape, num_classes=num_detected_classes)
         model.build()
         
         # 4. Train model
@@ -66,6 +70,7 @@ def run_single_experiment(model_name: str, train_split: float, output_dir: str):
             model.model,
             test_ds,
             history,
+            class_names=class_names,
             output_dir=output_dir,
             split_info=split_info
         )
@@ -180,7 +185,7 @@ def main():
     
     # Configure experiments here
     experiments = {
-        'model_names': ['resnet'],  # Add 'vgg16', 'mobilenet', 'resnet' ,simple_cnn
+        'model_names': ['mobilenet'],  # Add 'mobilenet', 'resnet' ,simple_cnn
         'train_splits': [0.3, 0.5, 0.7, 0.9],
         'results_dir': 'results'
     }

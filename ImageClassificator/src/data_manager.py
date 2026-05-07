@@ -4,96 +4,111 @@ import random
 import kagglehub
 from PIL import Image
 
+# ==========================================
+# KONFIGURACJA EKSPERYMENTU
+# ==========================================
+SELECTED_CLASSES = [
+    'apple_pie', 'hamburger', 'chicken_curry', 'donuts', 'french_fries', 
+    'ice_cream', 'pizza', 'sushi', 'tacos', 'omelette'
+]
+LIMIT_PER_CLASS = 500 
+
+# Miejsce zapisywania plików pobranych z Kaggle (można dostosować do własnych potrzeb)
+os.environ["KAGGLEHUB_CACHE"] = r"E:\KaggleCache"
+# ==========================================
+
 def is_image_corrupt(file_path):
+    """Weryfikacja czy plik jest poprawnym obrazem RGB."""
     try:
-        # Sprawdzenie nagłówka (JPEG zaczyna się od \xff\xd8)
-        with open(file_path, 'rb') as f:
-            header = f.read(10)
-            if b'JFIF' not in header and b'Exif' not in header:
-                return True
-        
-        # Próba otwarcia i faktycznego przetworzenia pikseli
         with Image.open(file_path) as img:
             img.verify() 
         with Image.open(file_path) as img:
             img.load() 
-            # Sprawdzenie czy to na pewno RGB (niektóre pliki są w skali szarości, co też wywala TF)
             if img.mode != 'RGB':
                 return True
         return False
     except Exception:
         return True
 
-def initialize_raw_data(limit_per_class=1000):
-    raw_path = os.path.join("..", "data", "raw")
+def initialize_raw_data():
+    """Pobiera Food-101 i przygotowuje bazę raw dla wybranych klas."""
+    # Ścieżka do folderu 'data/raw' (zakładając strukturę projektu)
+    raw_path = os.path.join("data", "raw")
     
-    if os.path.exists(raw_path) and len(os.listdir(os.path.join(raw_path, "Cat"))) >= limit_per_class:
-        print("Baza zdjęć (raw) już istnieje i jest zweryfikowana.")
-        return raw_path
+    # Sprawdzenie czy dane już są (żeby nie marnować czasu przy każdym uruchomieniu)
+    if os.path.exists(raw_path):
+        existing_classes = os.listdir(raw_path)
+        if all(cls in existing_classes for cls in SELECTED_CLASSES):
+            print("Wybrane klasy Food-101 już istnieją w bazie raw.")
+            return raw_path
 
-    print("Przygotowywanie czystej bazy danych z Kaggle...")
-    downloaded_path = kagglehub.dataset_download("shaunthesheep/microsoft-catsvsdogs-dataset")
-    src_pet_images = os.path.join(downloaded_path, "PetImages")
+    print("Pobieranie Food-101 z Kaggle...")
+    # Dataset kmader/food41 zawiera obrazy w strukturze images/<klasa>/<plik>.jpg
+    downloaded_path = kagglehub.dataset_download("kmader/food41")
+    src_images_dir = os.path.join(downloaded_path, "images")
     
     if os.path.exists(raw_path):
         shutil.rmtree(raw_path)
+    os.makedirs(raw_path, exist_ok=True)
 
-    for cls in ["Cat", "Dog"]:
-        os.makedirs(os.path.join(raw_path, cls), exist_ok=True)
-        src_folder = os.path.join(src_pet_images, cls)
+    for cls in SELECTED_CLASSES:
+        src_cls_folder = os.path.join(src_images_dir, cls)
+        if not os.path.exists(src_cls_folder):
+            print(f"Ostrzeżenie: Klasa {cls} nie istnieje w źródle!")
+            continue
+
+        dest_cls_folder = os.path.join(raw_path, cls)
+        os.makedirs(dest_cls_folder, exist_ok=True)
         
-        # 1. Pobieramy listę plików spełniających podstawowe kryteria
-        all_images = [f for f in os.listdir(src_folder) if f.endswith('.jpg')]
+        all_images = [f for f in os.listdir(src_cls_folder) if f.endswith('.jpg')]
+        random.shuffle(all_images)
         
-        valid_images = []
-        print(f"Weryfikacja zdjęć dla klasy {cls}...")
+        valid_count = 0
+        print(f"Przetwarzanie klasy: {cls}...", end="\r")
         
-        # 2. NAPRAWA: Sprawdzamy każdy plik zanim trafi do bazy raw
         for f in all_images:
-            full_path = os.path.join(src_folder, f)
-            if os.path.getsize(full_path) > 0 and not is_image_corrupt(full_path):
-                valid_images.append(f)
-            
-            if len(valid_images) >= limit_per_class:
+            if valid_count >= LIMIT_PER_CLASS:
                 break
+                
+            src_file = os.path.join(src_cls_folder, f)
+            if not is_image_corrupt(src_file):
+                shutil.copy(src_file, os.path.join(dest_cls_folder, f))
+                valid_count += 1
         
-        # 3. Kopiowanie zweryfikowanych plików
-        for f in valid_images:
-            shutil.copy(os.path.join(src_folder, f), os.path.join(raw_path, cls, f))
-    
-    print(f"Pobrano i zweryfikowano {len(valid_images) * 2} poprawnych zdjęć.")
+        print(f"Klasa {cls}: skopiowano {valid_count} poprawnych zdjęć.")
+
     return raw_path
 
 def split_data(train_split=0.5):
-    # Ścieżki z Twojego configu
-    raw_path = os.path.join("..", "data", "raw")
-    train_path = os.path.join("..", "data", "train")
-    test_path = os.path.join("..", "data", "test")
+    """Dzieli dane z 'raw' na 'train' i 'test' zachowując balans klas."""
+    raw_path = os.path.join("data", "raw")
+    train_path = os.path.join("data", "train")
+    test_path = os.path.join("data", "test")
 
-    # Czyścimy foldery operacyjne, by nie mieszać starych podziałów
     for p in [train_path, test_path]:
         if os.path.exists(p):
             shutil.rmtree(p)
 
-    for cls in ["Cat", "Dog"]:
+    classes = [d for d in os.listdir(raw_path) if os.path.isdir(os.path.join(raw_path, d))]
+
+    for cls in classes:
         os.makedirs(os.path.join(train_path, cls), exist_ok=True)
         os.makedirs(os.path.join(test_path, cls), exist_ok=True)
         
         images = os.listdir(os.path.join(raw_path, cls))
-        random.shuffle(images) # Losowość podziału
+        random.shuffle(images)
         
         split_idx = int(len(images) * train_split)
         train_files = images[:split_idx]
         test_files = images[split_idx:]
 
-        # Fizyczne kopiowanie plików do odpowiednich podfolderów
         for f in train_files:
             shutil.copy(os.path.join(raw_path, cls, f), os.path.join(train_path, cls, f))
         for f in test_files:
             shutil.copy(os.path.join(raw_path, cls, f), os.path.join(test_path, cls, f))
 
-    print(f"Podział zakończony: {train_split*100}% do treningu.")
+    print(f"Podział zakończony: {train_split*100}% trening / {(1-train_split)*100}% test.")
 
 if __name__ == "__main__":
     initialize_raw_data()
-    split_data(train_split=0.5)
+    split_data(train_split=0.8)
