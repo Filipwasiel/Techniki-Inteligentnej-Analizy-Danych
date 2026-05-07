@@ -45,6 +45,14 @@ pip install -r requirements.txt
 python -m src.main
 ```
 
+---
+### 3. Włączenie interfejsu GUI
+
+```bash
+python -m src.app_gui
+```
+---
+
 **Co się stanie:**
 1. Automatycznie pobierze dataset z Kaggle
 2. Przygotuje dane (weryfikacja obrazów, split)
@@ -57,7 +65,7 @@ python -m src.main
 ### Source
 
 The dataset is obtained from **Kaggle**. You can download it from:
-- **Kaggle Dataset URL**: https://www.kaggle.com/datasets/shaunthesheep/microsoft-catsvsdogs-dataset
+- **Kaggle Dataset URL**: https://www.kaggle.com/datasets/kmader/food41
 
 Miejsce domyślego zapisywania: zmień tutaj
 -> data_manager.py -> początek pliku
@@ -114,7 +122,8 @@ ImageClassificator/
 │   ├── data_manager.py           # Pobieranie i split danych
 │   ├── data_loader.py            # TensorFlow Dataset (resize, normalizacja)
 │   └── evaluate.py               # Zapis wyników (PNG, JSON, TXT)
-│
+│   └── gui_app.py                # interfejs graficzny
+|
 ├── data/                         # 📥 Dane (tworzone automatycznie)
 │   ├── raw/                      # Oryginalne zdjęcia (pobrane z Kaggle)
 │   ├── train/                    # Trenowanie
@@ -231,7 +240,6 @@ experiments = {
 - **Szybkość:** Wolniejszy
 - **Dokładność:** Bardzo dobra (85-92%)
 - **Opis:** ResNet50 z residual connections
-
 ---
 
 ## 🔧 Dodatkowe Polecenia
@@ -254,7 +262,6 @@ rmdir /s results # Windows
 ```bash
 rm -rf src/__pycache__  # macOS/Linux
 rmdir /s src\__pycache__ # Windows
-```
 
 ---
 
@@ -275,4 +282,7 @@ print(f"\nGPU dostępne: {tf.config.list_physical_devices('GPU')}")
 # Jeśli puste - TensorFlow będzie używać CPU (wolniejsze ale działa)
 ```
 
-**Ostatnia aktualizacja:** 2026-05-06
+
+
+
+**Ostatnia aktualizacja:** 2026-05-08
