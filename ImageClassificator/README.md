@@ -59,6 +59,12 @@ python -m src.main
 The dataset is obtained from **Kaggle**. You can download it from:
 - **Kaggle Dataset URL**: https://www.kaggle.com/datasets/shaunthesheep/microsoft-catsvsdogs-dataset
 
+Miejsce domyślego zapisywania: zmień tutaj
+-> data_manager.py -> początek pliku
+### ZAPIS DANYCH
+os.environ["KAGGLEHUB_CACHE"] = r"E:\KaggleCache"
+
+
 ## 🎯 Jak Testować Różne Modele i Podziały
 
 Edytuj plik `src/main.py`, funkcja `main()` (linia ~182):

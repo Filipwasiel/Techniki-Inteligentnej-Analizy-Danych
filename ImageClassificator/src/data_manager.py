@@ -4,12 +4,21 @@ import random
 import kagglehub
 from PIL import Image
 
+
+### ZAPIS DANYCH
+os.environ["KAGGLEHUB_CACHE"] = r"E:\KaggleCache"
+
 # ==========================================
 # KONFIGURACJA EKSPERYMENTU
 # ==========================================
+
+# SELECTED_CLASSES = [
+#     'apple_pie', 'hamburger', 'chicken_curry', 'donuts', 'french_fries', 
+#     'ice_cream', 'pizza', 'sushi', 'tacos', 'omelette','beef_carpaccio'
+# ]
+
 SELECTED_CLASSES = [
-    'apple_pie', 'hamburger', 'chicken_curry', 'donuts', 'french_fries', 
-    'ice_cream', 'pizza', 'sushi', 'tacos', 'omelette','beef_carpaccio'
+    'apple_pie', 'ravioli', 'ramen'
 ]
 LIMIT_PER_CLASS = 500 
 

@@ -57,7 +57,7 @@ def evaluate_and_plot(model, test_ds, history, class_names, output_dir=None, spl
         plt.title(f'Macierz Pomyłek ({split_info})')
         plt.tight_layout()
         confusion_path = os.path.join(output_dir, 'confusion_matrix.png')
-        plt.savefig(confusion_path, dpi=100, bbox_inches='tight', format='png')
+        plt.savefig(confusion_path, dpi=150, bbox_inches='tight', format='png')
         plt.close('all')
         if os.path.exists(confusion_path):
             print(f"✓ Macierz pomyłek zapisana: confusion_matrix.png ({os.path.getsize(confusion_path)} B)")
@@ -75,7 +75,7 @@ def evaluate_and_plot(model, test_ds, history, class_names, output_dir=None, spl
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         accuracy_path = os.path.join(output_dir, 'accuracy_plot.png')
-        plt.savefig(accuracy_path, dpi=100, bbox_inches='tight', format='png')
+        plt.savefig(accuracy_path, dpi=150, bbox_inches='tight', format='png')
         plt.close('all')
         if os.path.exists(accuracy_path):
             print(f"✓ Wykres dokładności zapisany: accuracy_plot.png ({os.path.getsize(accuracy_path)} B)")
