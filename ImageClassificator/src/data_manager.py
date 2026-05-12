@@ -12,6 +12,8 @@ os.environ["KAGGLEHUB_CACHE"] = r"E:\KaggleCache"
 # KONFIGURACJA EKSPERYMENTU
 # ==========================================
 
+RANDOM_SEED = 420
+
 SELECTED_CLASSES = [
     'apple_pie', 'hamburger', 'chicken_curry', 'donuts', 'french_fries', 
     'ice_cream', 'pizza', 'tacos', 'omelette','beef_carpaccio'
@@ -89,7 +91,7 @@ def initialize_raw_data():
     return raw_path
 
 def split_data(train_split=0.5):
-    """Dzieli dane z 'raw' na 'train' i 'test' zachowując balans klas."""
+    """Dzieli dane z 'raw' na 'train' i 'test' zachowując balans klas oraz powtarzalność."""
     raw_path = os.path.join("data", "raw")
     train_path = os.path.join("data", "train")
     test_path = os.path.join("data", "test")
@@ -105,6 +107,9 @@ def split_data(train_split=0.5):
         os.makedirs(os.path.join(test_path, cls), exist_ok=True)
         
         images = os.listdir(os.path.join(raw_path, cls))
+        
+        # Ustawienie seeda bezpośrednio przed mieszaniem listy dla każdej klasy
+        random.seed(RANDOM_SEED)
         random.shuffle(images)
         
         split_idx = int(len(images) * train_split)
@@ -116,7 +121,7 @@ def split_data(train_split=0.5):
         for f in test_files:
             shutil.copy(os.path.join(raw_path, cls, f), os.path.join(test_path, cls, f))
 
-    print(f"Podział zakończony: {train_split*100}% trening / {(1-train_split)*100}% test.")
+    print(f"Podział zakończony (Seed: {RANDOM_SEED}): {train_split*100:.0f}% trening / {(1-train_split)*100:.0f}% test.")
 
 if __name__ == "__main__":
     initialize_raw_data()

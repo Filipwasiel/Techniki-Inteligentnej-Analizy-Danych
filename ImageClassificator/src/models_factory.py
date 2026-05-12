@@ -7,7 +7,6 @@ from tensorflow.keras.applications.resnet50 import preprocess_input as resnet_pr
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobile_preprocess
 
 class BaseModel(ABC):
-    # DODANO: num_classes w __init__
     def __init__(self, input_shape=None, num_classes=2):
         if input_shape is None:
             input_shape = (config.IMG_SIZE[0], config.IMG_SIZE[1], 3)
@@ -39,12 +38,11 @@ class SimpleCNN(BaseModel):
             layers.Flatten(),
             layers.Dense(128, activation='relu'),
             layers.Dropout(0.5),
-            # ZMIANA: Softmax i dynamiczna liczba klas
             layers.Dense(self.num_classes, activation='softmax')
         ])
         self.model.compile(
             optimizer='adam',
-            loss='sparse_categorical_crossentropy', # ZMIANA na wieloklasowy
+            loss='sparse_categorical_crossentropy', 
             metrics=['accuracy']
         )
 
