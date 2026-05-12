@@ -10,7 +10,6 @@ def load_data():
         label_mode="int"
     )
     
-    # Wyciągamy nazwy klas ZANIM zrobimy prefetch
     class_names = train_ds.class_names
     
     test_ds = image_dataset_from_directory(
@@ -22,8 +21,8 @@ def load_data():
     )
 
     AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
-    test_ds = test_ds.prefetch(buffer_size=AUTOTUNE)
+    # Dodanie cache() drastycznie przyspiesza kolejne epoki
+    train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
+    test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-    # ZWRACAMY TRZY ELEMENTY
     return train_ds, test_ds, class_names

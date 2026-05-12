@@ -12,15 +12,15 @@ os.environ["KAGGLEHUB_CACHE"] = r"E:\KaggleCache"
 # KONFIGURACJA EKSPERYMENTU
 # ==========================================
 
-# SELECTED_CLASSES = [
-#     'apple_pie', 'hamburger', 'chicken_curry', 'donuts', 'french_fries', 
-#     'ice_cream', 'pizza', 'sushi', 'tacos', 'omelette','beef_carpaccio'
-# ]
-
 SELECTED_CLASSES = [
-    'apple_pie', 'ravioli', 'ramen'
+    'apple_pie', 'hamburger', 'chicken_curry', 'donuts', 'french_fries', 
+    'ice_cream', 'pizza', 'tacos', 'omelette','beef_carpaccio'
 ]
-LIMIT_PER_CLASS = 500 
+
+# SELECTED_CLASSES = [
+#     'apple_pie', 'ravioli', 'ramen'
+# ]
+LIMIT_PER_CLASS = 1000  
 
 # Miejsce zapisywania plików pobranych z Kaggle (można dostosować do własnych potrzeb)
 os.environ["KAGGLEHUB_CACHE"] = r"E:\KaggleCache"

@@ -282,7 +282,4 @@ print(f"\nGPU dostępne: {tf.config.list_physical_devices('GPU')}")
 # Jeśli puste - TensorFlow będzie używać CPU (wolniejsze ale działa)
 ```
 
-
-
-
 **Ostatnia aktualizacja:** 2026-05-08

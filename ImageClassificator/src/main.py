@@ -185,8 +185,8 @@ def main():
     
     # Configure experiments here
     experiments = {
-        'model_names': ['mobilenet'],  # Add 'mobilenet', 'resnet' ,simple_cnn
-        'train_splits': [0.3, 0.5, 0.7, 0.9],
+        'model_names': ['simple_cnn'],  # Add 'mobilenet', 'resnet' ,simple_cnn
+        'train_splits': [0.7],
         'results_dir': 'results'
     }
     
