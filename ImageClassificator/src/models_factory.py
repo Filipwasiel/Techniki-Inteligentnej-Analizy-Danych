@@ -29,15 +29,23 @@ class BaseModel(ABC):
 class SimpleCNN(BaseModel):
     def build(self):
         self.model = models.Sequential([
+            # Warstwa wejściowa i normalizacja
             layers.Input(shape=self.input_shape),
             layers.Rescaling(1./255),
+            # warstwa - szukanie krawędzi i kolorów/tekstur
             layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
             layers.MaxPooling2D((2, 2)),
+                #szukanie bradziej złożonych wzorców/kształtów
             layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
             layers.MaxPooling2D((2, 2)),
+            # warstwa - podejmowanie decyzji na podstawie wykrytych wzorców
+                # płaski wektor cech
             layers.Flatten(),
+                # warstwa gęsta - klasyfikacja
             layers.Dense(128, activation='relu'),
-            layers.Dropout(0.5),
+                # warstwa regularizacyjna - zapobiega przeuczeniu
+            # layers.Dropout(0.5),
+                # warstwa wyjściowa - prawdopodobieństwa klas
             layers.Dense(self.num_classes, activation='softmax')
         ])
         self.model.compile(
@@ -49,15 +57,22 @@ class SimpleCNN(BaseModel):
 class MobileNetModel(BaseModel):
     def build(self):
         base_model = tf.keras.applications.MobileNetV2(
+            # pobierane wagi, bez wartości górnej warstwy
             input_shape=self.input_shape, include_top=False, weights='imagenet'
         )
+        # zamrożone warstwy
         base_model.trainable = False
         self.model = models.Sequential([
+            # wejściowa
             layers.Input(shape=self.input_shape),
+            # normalizacja 
             layers.Lambda(mobile_preprocess), 
             base_model,
+            # globalna średnia - redukcja wymiarów
             layers.GlobalAveragePooling2D(),
+            # wyłączanie losowe - regularizacja
             layers.Dropout(0.3),
+            # warstwa wyjściowa - klasyfikacja
             layers.Dense(self.num_classes, activation='softmax') 
         ])
         self.model.compile(
@@ -69,15 +84,21 @@ class MobileNetModel(BaseModel):
 class ResNetModel(BaseModel):
     def build(self):
         base_model = tf.keras.applications.ResNet50(
+            # pobierane wagi, bez wartości górnej warstwy
             input_shape=self.input_shape, include_top=False, weights='imagenet'
         )
+        # zamrożone wagi warstwy
         base_model.trainable = False 
         self.model = models.Sequential([
+            # warstwa wejściowa i normalizacja
             layers.Input(shape=self.input_shape),
             layers.Lambda(resnet_preprocess),
             base_model,
+            # globalna średnia - redukcja wymiarów
             layers.GlobalAveragePooling2D(),
+            # wyłączanie losowe - regularizacja
             layers.Dropout(0.4),
+            # warstwa wyjściowa - klasyfikacja
             layers.Dense(self.num_classes, activation='softmax') 
         ])
         self.model.compile(

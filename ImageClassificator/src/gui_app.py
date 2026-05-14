@@ -112,8 +112,8 @@ class FoodClassifierGUI(ctk.CTk):
             self.bar_widgets[food_class] = (pb, pct)
 
     def _setup_stats_tab(self):
-        # Główny kontener bez scrolla, żeby łatwiej kontrolować układ "jednej strony"
-        self.stats_main_container = ctk.CTkFrame(self.tab_stats, fg_color="transparent")
+        # Główny kontener ze scrollem dla tabeli metryk
+        self.stats_main_container = ctk.CTkScrollableFrame(self.tab_stats, fg_color="transparent")
         self.stats_main_container.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Sekcja na WYKRESY (obok siebie)
@@ -207,8 +207,8 @@ class FoodClassifierGUI(ctk.CTk):
         cm_path = os.path.join(folder, "confusion_matrix.png")
 
         # Rozmiar dobrany pod okno 1400px (50% szerokości z marginesami)
-        target_width = 680 
-        target_height = 500
+        target_width = 450 
+        target_height = 350
 
         if os.path.exists(acc_path):
             img_acc = ctk.CTkImage(light_image=Image.open(acc_path), size=(target_width, target_height))
