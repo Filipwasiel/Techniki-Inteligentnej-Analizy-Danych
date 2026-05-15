@@ -34,6 +34,10 @@ class GGL_PSOD:
         self.stagnation_counter = np.zeros(ps)
 
     def run(self):
+        raise NotImplementedError("Metoda run() musi zostać zaimplementowana w klasie pochodnej.")
+
+class GGL_PSOD_Raw(GGL_PSOD):
+    def run(self):
         for iter in range(self.max_iter):
             # Liniowa aktualizacja parametrów wg równań PSO
             w = 0.9 - (iter / self.max_iter) * (0.9 - 0.4) # bezwładność 
@@ -106,10 +110,5 @@ class GGL_PSOD:
                 
         return self.gbest, self.gbest_fit
 
-# Przykład użycia:
-def sphere_function(x):
-    return np.sum(x**2)
-
-# Uruchomienie:
-# algo = GGL_PSOD(sphere_function, dim=30)
-# best_pos, best_val = algo.run()
+class GGL_PSOD_Modified(GGL_PSOD):
+    pass

@@ -213,3 +213,5 @@ Utils/*test*
 Utils/*raport*
 *.pdf
 *raport*
+cec2017-py/
+results/
