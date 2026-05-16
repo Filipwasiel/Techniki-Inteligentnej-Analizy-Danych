@@ -72,6 +72,9 @@ class GGL_PSOD_Raw(GGL_PSOD):
                     self.E[i] = O_i
                     self.e_fit[i] = o_fit
                     self.stagnation_counter[i] = 0
+                    if o_fit < self.gbest_fit:
+                        self.gbest_fit = o_fit
+                        self.gbest = np.copy(O_i)
                 else:
                     self.stagnation_counter[i] += 1
                 
@@ -86,9 +89,11 @@ class GGL_PSOD_Raw(GGL_PSOD):
                 # --- WARSTWA PSO (Aktualizacja cząstki) ---
                 # Równanie prędkości 
                 r1, r2 = np.random.rand(self.dim), np.random.rand(self.dim)
-                self.V[i] = (w * self.V[i]) 
-                + (c1 * r1 * (self.E[i] - self.X[i])) 
-                + (c2 * r2 * (self.gbest - self.X[i]))
+                self.V[i] = (
+                        w * self.V[i]
+                        + c1 * r1 * (self.E[i] - self.X[i])
+                        + c2 * r2 * (self.gbest - self.X[i])
+                        )
                 
                 # Aktualizacja pozycji 
                 self.X[i] = self.X[i] + self.V[i]

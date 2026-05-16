@@ -6,7 +6,7 @@ if __name__ == "__main__":
     algorithms = [GGL_PSOD_Raw, GGL_PSOD_Modified]
     functions_to_test = [5] # numery funkcji dla których bedzie testowane
     dim = 30
-    num_runs = 51
+    num_runs = 8
     
     # Uruchomienie eksperymentów
     run_experiments(
