@@ -34,7 +34,7 @@ venv\Scripts\activate
 # Instalacja zależności
 pip install -r requirements.txt
 ```
-### 3. Do obsługi cec2017 wykorzystano biblioteke cec2017-py - należy ją ręcznie pobrać
+### 3. Do obsługi cec2017 wykorzystano biblioteke cec2017-py - pobierane jest automatycznie przy instalacji zależności z pliku ```requirements.txt```, więc ten krok nalezy pominąć, chyba że automatyczna instalacja nie działa. 
 ```bash
 git clone https://github.com/tilleyd/cec2017-py
 cd cec2017-py

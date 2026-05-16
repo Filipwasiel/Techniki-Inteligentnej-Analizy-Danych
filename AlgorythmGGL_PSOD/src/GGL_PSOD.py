@@ -14,7 +14,6 @@ class GGL_PSOD:
         # Parametry algorytmu GA i PS0
         self.pm = 0.01  # Prawdopodobieństwo mutacji
         self.sz = 7     # Próg stagnacji egzemplarza - bez poprawy 7 razy jest selekcja turniejowa poprzednich pozycji
-        self.c_const = 1.49618 # Współczynnik c dla standardowego PSO 
         
         # Inicjalizacja populacji
         self.X = np.random.uniform(lb, ub, (ps, dim))
@@ -87,9 +86,9 @@ class GGL_PSOD_Raw(GGL_PSOD):
                 # --- WARSTWA PSO (Aktualizacja cząstki) ---
                 # Równanie prędkości 
                 r1, r2 = np.random.rand(self.dim), np.random.rand(self.dim)
-                self.V[i] = (w * self.V[i] + 
-                             c1 * r1 * (self.E[i] - self.X[i]) + 
-                             c2 * r2 * (self.gbest - self.X[i]))
+                self.V[i] = (w * self.V[i]) 
+                + (c1 * r1 * (self.E[i] - self.X[i])) 
+                + (c2 * r2 * (self.gbest - self.X[i]))
                 
                 # Aktualizacja pozycji 
                 self.X[i] = self.X[i] + self.V[i]
