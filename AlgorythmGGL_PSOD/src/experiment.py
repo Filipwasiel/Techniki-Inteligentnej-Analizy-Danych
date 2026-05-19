@@ -16,7 +16,9 @@ def run_single_experiment(params):
 
     model = AlgorithmClass(
         obj_func=obj_func, 
-        dim=dim
+        dim=dim,
+        func_idx=func_idx,
+        run_id=run_id
     )
     
     try:
