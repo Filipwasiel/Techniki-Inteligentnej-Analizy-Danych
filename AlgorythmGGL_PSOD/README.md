@@ -50,8 +50,42 @@ python -m src.main
 ```
 
 ---
+## Opis Modyfikacji w `GGL_PSOD_Modified`
 
-## 🛠️ Opis Modyfikacji w `GGL_PSOD_Modified`
+Wersja zmodyfikowana `GGL_PSOD_Modified` rozszerza klasyczny, dwuwarstwowy algorytm GGL-PSOD o dwa komplementarne mechanizmy ukierunkowane na **zwiększenie różnorodności populacji** oraz **zapobieganie przedwczesnej zbieżności** w minimach lokalnych. 
+
+Modyfikacja wprowadza inteligentne, selektywne zarządzanie rojem zarówno w warstwie genetycznej (zarządzanie pamięcią wzorców), jak i w warstwie rojowej (równanie prędkości PSO).
+
+---
+
+### 1. Uwarunkowane Uczenie Negatywne (Warstwa PSO)
+W przeciwieństwie do klasycznego podejścia *repulsion*, które odpycha cząstki bezwarunkowo i wprowadza chaos, w zmodyfikowanym algorytmie wektor odpychania aktywuje się w sposób wysoce selektywny na podstawie trzech filtrów:
+
+* **Uwarunkowanie Przestrzenne (Strefa Zagrożenia):** Algorytm wyznacza środek ciężkości trzech najgorszych cząstek w populacji (`wbest_zone`). Siła odpychająca działa na cząstkę wyłącznie w wymiarach, w których odległość od tej strefy jest mniejsza niż **15% szerokości dziedziny poszukiwań** (`0.15 * (ub - lb)`).
+* **Uwarunkowanie Hierarchiczne (Status Marudera):** Mechanizm odpychania **nie dotyczy liderów roju**. Aktywuje się on wyłącznie dla cząstek, których historyczne przystosowanie ($pbest\_fit$) jest gorsze niż aktualna średnia populacji (`mean_fitness`).
+* **Dynamiczna Adaptacja Siły (`c_bad`):** Intensywność odpychania sterowana jest współczynnikiem $c_{bad}$, który maleje liniowo wraz z postępem iteracji (od $1.5$ do $0.1$). Zapewnia to silną dywersyfikację na początku i stabilną zbieżność pod koniec działania algorytmu.
+
+**Zmodyfikowane równanie prędkości cząstki:**
+$$V_{i} = w \cdot V_{i} + c_1 \cdot r_1 \cdot (E_{i} - X_{i}) + c_2 \cdot r_2 \cdot (gbest - X_{i}) + V_{repulsion}$$
+
+Gdzie składowe $V_{repulsion}$ dla każdego wymiaru wyliczane są jako:
+`- c_bad * r3 * (wbest_zone - X[i])` (gdy spełnione są powyższe warunki uwarunkowania).
+
+---
+
+### 2. Adaptacyjna Mutacja Wzorców DMS (Warstwa Genetyczna)
+Modyfikacja dotyczy również mechanizmu krzyżowania i mutacji przy wystąpieniu stagnacji. W klasycznym GGL-PSOD prawdopodobieństwo mutacji wzorca jest stałe i wynosi $p_m = 0.01$. W wersji zmodyfikowanej wdrożono mechanizm **Dynamic Mutation Scaling (DMS)**:
+
+* Wraz ze wzrostem licznika stagnacji danej cząstki (`stagnation_counter`), bazowe prawdopodobieństwo mutacji rośnie adaptacyjnie (maksymalnie do poziomu $0.15$).
+* Dzięki temu cząstki efektywne zachowują niską mutację (precyzyjna eksploatacja obszaru), natomiast cząstki uwięzione w minimach lokalnych zyskują znacznie wyższą szansę na losową dywersyfikację struktury genów jeszcze przed ostatecznym resetem turniejowym.
+
+---
+
+### Podsumowanie korzyści
+Połączenie uwarunkowanego odpychania maruderów w warstwie fizycznej (PSO) oraz adaptacyjnego skalowania mutacji w warstwie informacyjnej (GA) pozwala algorytmowi zachować wysoką elastyczność i skutecznie uciekać z pułapek optymalizacyjnych w problemach wielimodalnych, hybrydowych oraz kompozytowych (co potwierdzają wyniki testów statystycznych Wilcoxona).
+
+
+## Opis Modyfikacji w `GGL_PSOD_Modified` - stare 
 
 Klasa `GGL_PSOD_Modified` wprowadza trzy główne usprawnienia w stosunku do bazowej, surowej wersji algorytmu `GGL_PSOD_Raw`. Ich nadrzędnym celem jest **zwiększenie różnorodności roju**, **zapobieganie przedwczesnej zbieżności do lokalnych minimów** oraz **poprawa zbieżności globalnej**.
 
