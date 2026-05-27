@@ -133,13 +133,18 @@ import numpy as np
 class GGL_PSOD_Modified(GGL_PSOD):
     def run(self):
         """
-        Zoptymalizowana wersja GGL-PSOD wyposażona w Globalny Filtr Stagnacji
-        oraz ukierunkowane, wykładniczo wygaszane uczenie negatywne.
+        Zoptymalizowana wersja GGL-PSOD wyposażona w Dual-Ring Topology (Modyfikacja 1)
+        oraz Pamięć Tabu Stagnacji (Modyfikacja 2). Usunięto mechanizm Shake.
         """
         # Czyszczenie historii przed nowym przebiegiem
         self.history = []
         
-        # Inicjalizacja zmiennych do monitorowania globalnej stagnacji roju
+        # --- STRUKTURY DLA MODYFIKACJI 2 (PAMIĘĆ TABU) ---
+        # Bufor przechowujący pozycje gbest z ostatnich 100 iteracji w celu wykrycia najgłębszej pułapki
+        gbest_position_history = []
+        tabu_zone = np.zeros(self.dim)
+        
+        # Inicjalizacja zmiennych do monitorowania globalnej stagnacji roju (Global Stagnation Filter)
         best_gbest_ever = self.gbest_fit
         global_stagnation = 0
         
@@ -149,43 +154,59 @@ class GGL_PSOD_Modified(GGL_PSOD):
             c1 = 2.5 - (iter / self.max_iter) * (2.5 - 0.5)
             c2 = 0.5 + (iter / self.max_iter) * (2.5 - 0.5)
             
-            # Aktualizacja licznika globalnego braku postępu
+            # Wykładnicze wygaszanie siły odpychania c_bad
+            c_bad = 0.5 * np.exp(-4.0 * (iter / self.max_iter))
+            
+            # Aktualizacja licznika globalnego braku postępu całego roju
             if self.gbest_fit < best_gbest_ever:
                 best_gbest_ever = self.gbest_fit
                 global_stagnation = 0
             else:
                 global_stagnation += 1
             
-            # USPRAWNIENIE: Wykładnicze wygaszanie siły odpychania (funkcja exp)
-            # W początkowej i środkowej fazie dynamicznego spadku siła maleje płynnie,
-            # zapobiegając rozregulowaniu i powstawaniu opóźnień ("brzucha") na wykresie.
-            c_bad = 0.5 * np.exp(-4.0 * (iter / self.max_iter))
+            # --- WDROŻENIE MODYFIKACJI 2: AKTUALIZACJA PAMIĘCI TABU ---
+            # Zapisujemy aktualną pozycję lidera roju
+            gbest_position_history.append(np.copy(self.gbest))
+            if len(gbest_position_history) > 100:
+                gbest_position_history.pop(0) # Trzymamy okno przesuwne o szerokości maksymalnie 100 wpisów
             
-            # 2. Wyznaczenie obszaru zakazanego (środek ciężkości 3 najgorszych cząstek)
-            worst_3_indices = np.argsort(self.pbest_fit)[-3:]
-            wbest_zone = np.mean(self.pbest[worst_3_indices], axis=0)
+            # Strefą Tabu staje się średnia pozycja lidera w tym oknie. Jeśli rój stoi w miejscu,
+            # tabu_zone precyzyjnie namierza środek pułapki (lokalnego minimum).
+            tabu_zone = np.mean(gbest_position_history, axis=0)
             
-            # Średni fitness populacji do warunku hierarchicznego
+            # Wyznaczenie parametrów pomocniczych do selekcji i odpychania
             mean_fitness = np.mean(self.pbest_fit)
             max_dim_dist = self.ub - self.lb
+            
+            # Pobieramy indeksy 3 najlepszych osobników w roju dla Modyfikacji 1
+            best_3_indices = np.argsort(self.pbest_fit)[:3]
             
             # Główna pętla po populacji cząstek
             for i in range(self.ps):
                 
-                # --- WARSTWA GENETYCZNA (Generowanie Egzemplarzy - Ring Topology) ---
+                # --- WDROŻENIE MODYFIKACJI 1: WARSTWA GENETYCZNA (Dual-Ring Topology) ---
                 n_i1 = i - 1 if i > 0 else self.ps - 1
                 n_i2 = i + 1 if i < self.ps - 1 else 0
                 
                 O_i = np.zeros(self.dim)
                 for d in range(self.dim):
-                    k = np.random.randint(0, self.ps)
-                    if self.pbest_fit[i] < self.pbest_fit[k]:
+                    # Warunek hierarchiczny: jeśli cząstka jest słaba (gorsza od średniej roju),
+                    # pozwalamy jej krzyżować geny bezpośrednio z elitą roju (jednym z TOP 3)
+                    if self.pbest_fit[i] > mean_fitness:
+                        k_elite = np.random.choice(best_3_indices)
                         r_d = np.random.rand()
-                        O_i[d] = r_d * self.pbest[n_i1, d] + (1 - r_d) * self.pbest[n_i2, d]
+                        # Hybrydowe krzyżowanie: wiedza topologii pierścienia + zastrzyk genów elity
+                        O_i[d] = r_d * self.pbest[n_i1, d] + (1 - r_d) * self.pbest[k_elite, d]
                     else:
-                        O_i[d] = self.pbest[k, d]
+                        # Jeśli cząstka jest dobra (lepsza od średniej), zachowujemy standardowy GL-PSO Ring Topology
+                        k = np.random.randint(0, self.ps)
+                        if self.pbest_fit[i] < self.pbest_fit[k]:
+                            r_d = np.random.rand()
+                            O_i[d] = r_d * self.pbest[n_i1, d] + (1 - r_d) * self.pbest[n_i2, d]
+                        else:
+                            O_i[d] = self.pbest[k, d]
                 
-                # Mutacja egzemplarza (standard GL-PSO)
+                # Mutacja egzemplarza (standard GL-PSO) - kluczowa do utrzymania różnorodności przy elicie
                 for d in range(self.dim):
                     if np.random.rand() < self.pm:
                         O_i[d] = np.random.uniform(self.lb, self.ub)
@@ -210,33 +231,30 @@ class GGL_PSOD_Modified(GGL_PSOD):
                     self.e_fit[i] = self.pbest_fit[best_participant]
                     self.stagnation_counter[i] = 0
 
-                # --- WARSTWA PSO (Aktualizacja cząstki z Inteligentnym Odpychaniem) ---
+                # --- WARSTWA PSO (Aktualizacja cząstki z Odpychaniem od Strefy Tabu) ---
                 r1 = np.random.rand(self.dim)
                 r2 = np.random.rand(self.dim)
                 r3 = np.random.rand(self.dim)
                 
                 repulsion_vector = np.zeros(self.dim)
                 
-                # MODYFIKACJA (Globalny Filtr Stagnacji): Odpychanie uruchamia się TYLKO wtedy,
-                # gdy cały rój utknął (global_stagnation >= 5), dana cząstka stoi w miejscu (>= 3)
-                # ORAZ jej wynik jest gorszy niż średnia populacji.
+                # Aktywacja uwarunkowana: odpychamy maruderów, gdy cały rój przeżywa kryzys (global_stagnation >= 5)
                 if global_stagnation >= 5 and self.stagnation_counter[i] >= 3 and self.pbest_fit[i] > mean_fitness:
                     
-                    # Dynamicznie malejący promień strefy zakazanej (od 5% do 0.5% szerokości dziedziny)
+                    # Dynamicznie malejący promień strefy zakazanej (od 5% do 0.5% dziedziny)
                     current_zone_ratio = 0.05 * (1.0 - iter / self.max_iter)
                     
                     for d in range(self.dim):
-                        # Sprawdzenie dynamicznego warunku przestrzennego
-                        if abs(self.X[i, d] - wbest_zone[d]) < current_zone_ratio * max_dim_dist:
+                        # MODYFIKACJA 2: Sprawdzenie dystansu do STREFY TABU (a nie do skaczących najgorszych cząstek)
+                        if abs(self.X[i, d] - tabu_zone[d]) < current_zone_ratio * max_dim_dist:
                             
-                            # Ukierunkowane odpychanie: ucieczka od strefy złej w stronę gbest
+                            # Stabilne odpychanie o charakterze kierunkowym od historycznego punktu utknięcia
                             direction_to_gbest = np.sign(self.gbest[d] - self.X[i, d])
-                            repulsion_force = - c_bad * r3[d] * (wbest_zone[d] - self.X[i, d])
+                            repulsion_force = - c_bad * r3[d] * (tabu_zone[d] - self.X[i, d])
                             
-                            # Integracja impulsu repulsyjnego ze zwrotem ku globalnemu optimum
                             repulsion_vector[d] = repulsion_force + (0.05 * c_bad * direction_to_gbest * max_dim_dist)
                 
-                # Zbalansowane równanie prędkości cząstki
+                # Zbalansowane, zorientowane na sukces równanie prędkości cząstki
                 self.V[i] = (
                     w * self.V[i]
                     + c1 * r1 * (self.E[i] - self.X[i])
@@ -244,7 +262,7 @@ class GGL_PSOD_Modified(GGL_PSOD):
                     + repulsion_vector
                 )
                 
-                # Aktualizacja pozycji cząstki
+                # Aktualizacja pozycji cząstki i nałożenie ograniczeń dziedziny
                 self.X[i] = self.X[i] + self.V[i]
                 self.X[i] = np.clip(self.X[i], self.lb, self.ub)
                 
@@ -262,6 +280,6 @@ class GGL_PSOD_Modified(GGL_PSOD):
             
             # Monitorowanie postępu w konsoli
             if (iter + 1) % 100 == 0:
-                print(f"F{self.func_idx} Run{self.run_id+1} - Iteracja {iter+1}/{self.max_iter}, Najlepszy wynik (Modyfikacja): {self.gbest_fit:.5e}")
+                print(f"F{self.func_idx} Run{self.run_id+1} - Iteracja {iter+1}/{self.max_iter}, Najlepszy wynik: {self.gbest_fit:.5e}")
                 
         return self.gbest, self.gbest_fit, self.history
