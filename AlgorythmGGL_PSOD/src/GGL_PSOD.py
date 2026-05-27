@@ -128,36 +128,45 @@ class GGL_PSOD_Raw(GGL_PSOD):
         return self.gbest, self.gbest_fit, self.history
 
 
+import numpy as np
+
 class GGL_PSOD_Modified(GGL_PSOD):
     def run(self):
         """
-        Zoptymalizowana wersja GGL-PSOD z warunkowym mechanizmem uczenia negatywnego
-        (Conditional Negative Learning / Repulsion).
+        Zoptymalizowana wersja GGL-PSOD wyposażona w Globalny Filtr Stagnacji
+        oraz ukierunkowane, wykładniczo wygaszane uczenie negatywne.
         """
         # Czyszczenie historii przed nowym przebiegiem
         self.history = []
         
-        # Główna pętla optymalizacji (iteracje)
+        # Inicjalizacja zmiennych do monitorowania globalnej stagnacji roju
+        best_gbest_ever = self.gbest_fit
+        global_stagnation = 0
+        
         for iter in range(self.max_iter):
-            
-            # 1. Liniowa aktualizacja parametrów GGL-PSOD (zgodnie z eq. 13-15 z artykułu)
+            # 1. Liniowa aktualizacja podstawowych parametrów GGL-PSOD (eq. 13-15)
             w = 0.9 - (iter / self.max_iter) * (0.9 - 0.4)
             c1 = 2.5 - (iter / self.max_iter) * (2.5 - 0.5)
             c2 = 0.5 + (iter / self.max_iter) * (2.5 - 0.5)
             
-            # Dynamiczny parametr odpychania c_bad - maleje liniowo, 
-            # aby pod koniec pozwolić na precyzyjną lokalną eksploatację optimum
-            c_bad = 1.5 - (iter / self.max_iter) * (1.5 - 0.1)
+            # Aktualizacja licznika globalnego braku postępu
+            if self.gbest_fit < best_gbest_ever:
+                best_gbest_ever = self.gbest_fit
+                global_stagnation = 0
+            else:
+                global_stagnation += 1
             
-            # 2. Wyznaczenie obszaru zakazanego (Worst Archive)
-            # Szukamy środka ciężkości (średniej pozycji) 3 najgorszych cząstek w roju.
+            # USPRAWNIENIE: Wykładnicze wygaszanie siły odpychania (funkcja exp)
+            # W początkowej i środkowej fazie dynamicznego spadku siła maleje płynnie,
+            # zapobiegając rozregulowaniu i powstawaniu opóźnień ("brzucha") na wykresie.
+            c_bad = 0.5 * np.exp(-4.0 * (iter / self.max_iter))
+            
+            # 2. Wyznaczenie obszaru zakazanego (środek ciężkości 3 najgorszych cząstek)
             worst_3_indices = np.argsort(self.pbest_fit)[-3:]
             wbest_zone = np.mean(self.pbest[worst_3_indices], axis=0)
             
-            # Wyznaczamy średni fitness w populacji (baza do selektywnego odpychania)
+            # Średni fitness populacji do warunku hierarchicznego
             mean_fitness = np.mean(self.pbest_fit)
-            
-            # Maksymalny możliwy dystans w jednym wymiarze (do definicji strefy bliskości)
             max_dim_dist = self.ub - self.lb
             
             # Główna pętla po populacji cząstek
@@ -193,7 +202,7 @@ class GGL_PSOD_Modified(GGL_PSOD):
                 else:
                     self.stagnation_counter[i] += 1
                 
-                # Re-selekcja egzemplarza w przypadku utknięcia (Turniej 20% Ps)
+                # Re-selekcja przy stagnacji (Turniej 20% Ps)
                 if self.stagnation_counter[i] >= self.sz:
                     participants = np.random.choice(self.ps, int(0.2 * self.ps), replace=False)
                     best_participant = participants[np.argmin(self.pbest_fit[participants])]
@@ -201,23 +210,33 @@ class GGL_PSOD_Modified(GGL_PSOD):
                     self.e_fit[i] = self.pbest_fit[best_participant]
                     self.stagnation_counter[i] = 0
 
-                # --- WARSTWA PSO (Aktualizacja cząstki z Conditional Repulsion) ---
+                # --- WARSTWA PSO (Aktualizacja cząstki z Inteligentnym Odpychaniem) ---
                 r1 = np.random.rand(self.dim)
                 r2 = np.random.rand(self.dim)
                 r3 = np.random.rand(self.dim)
                 
-                # Inicjalizacja wektora odpychania wartościami 0
                 repulsion_vector = np.zeros(self.dim)
                 
-                # WARUNEK 1 (Hierarchiczny): Odpychamy tylko maruderów (cząstki gorsze od średniej roju)
-                if self.pbest_fit[i] > mean_fitness:
+                # MODYFIKACJA (Globalny Filtr Stagnacji): Odpychanie uruchamia się TYLKO wtedy,
+                # gdy cały rój utknął (global_stagnation >= 5), dana cząstka stoi w miejscu (>= 3)
+                # ORAZ jej wynik jest gorszy niż średnia populacji.
+                if global_stagnation >= 5 and self.stagnation_counter[i] >= 3 and self.pbest_fit[i] > mean_fitness:
+                    
+                    # Dynamicznie malejący promień strefy zakazanej (od 5% do 0.5% szerokości dziedziny)
+                    current_zone_ratio = 0.05 * (1.0 - iter / self.max_iter)
+                    
                     for d in range(self.dim):
-                        # WARUNEK 2 (Przestrzenny): Odpychamy tylko wtedy, gdy cząstka jest niebezpiecznie 
-                        # blisko (w granicach 15% szerokości dziedziny) strefy zakazanej
-                        if abs(self.X[i, d] - wbest_zone[d]) < 0.15 * max_dim_dist:
-                            repulsion_vector[d] = - c_bad * r3[d] * (wbest_zone[d] - self.X[i, d])
+                        # Sprawdzenie dynamicznego warunku przestrzennego
+                        if abs(self.X[i, d] - wbest_zone[d]) < current_zone_ratio * max_dim_dist:
+                            
+                            # Ukierunkowane odpychanie: ucieczka od strefy złej w stronę gbest
+                            direction_to_gbest = np.sign(self.gbest[d] - self.X[i, d])
+                            repulsion_force = - c_bad * r3[d] * (wbest_zone[d] - self.X[i, d])
+                            
+                            # Integracja impulsu repulsyjnego ze zwrotem ku globalnemu optimum
+                            repulsion_vector[d] = repulsion_force + (0.05 * c_bad * direction_to_gbest * max_dim_dist)
                 
-                # Rozbudowane równanie prędkości cząstki (zgodnie z eq. 12 + nasz komponent)
+                # Zbalansowane równanie prędkości cząstki
                 self.V[i] = (
                     w * self.V[i]
                     + c1 * r1 * (self.E[i] - self.X[i])
@@ -231,7 +250,6 @@ class GGL_PSOD_Modified(GGL_PSOD):
                 
                 # Ocena nowej pozycji i aktualizacja Pbest, Gbest
                 current_fit = self.obj_func(self.X[i])
-                
                 if current_fit < self.pbest_fit[i]:
                     self.pbest_fit[i] = current_fit
                     self.pbest[i] = np.copy(self.X[i])
@@ -239,12 +257,11 @@ class GGL_PSOD_Modified(GGL_PSOD):
                         self.gbest_fit = current_fit
                         self.gbest = np.copy(self.X[i])
             
-            # --- NOWOŚĆ: Zapis aktualnego gbest_fit na koniec iteracji ---
+            # Zapis aktualnego gbest_fit na koniec iteracji
             self.history.append(self.gbest_fit)
             
-            # Monitorowanie postępu optymalizacji w konsoli (co 100 iteracji)
+            # Monitorowanie postępu w konsoli
             if (iter + 1) % 100 == 0:
-                print(f"F{self.func_idx} Run{self.run_id+1} - Iteracja {iter+1}/{self.max_iter}, Najlepszy wynik (Surowy): {self.gbest_fit:.5e}")
+                print(f"F{self.func_idx} Run{self.run_id+1} - Iteracja {iter+1}/{self.max_iter}, Najlepszy wynik (Modyfikacja): {self.gbest_fit:.5e}")
                 
-        # Zwracanie wzbogacone o tablicę history
         return self.gbest, self.gbest_fit, self.history
