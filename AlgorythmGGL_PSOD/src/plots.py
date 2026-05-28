@@ -10,20 +10,16 @@ def generate_combined_plots(func_idx, raw_storage, history_storage):
     
     Zapisuje wyniki jako pliki PNG w folderze 'plots/' z nazwą 'F{numer}.png'.
     """
-    # Tworzymy folder 'plots' w katalogu głównym projektu
     os.makedirs("plots", exist_ok=True)
     
-    # Pobieramy listy nazw algorytmów, które mają dane dla tej funkcji
     available_algs = [alg for alg in raw_storage.keys() if func_idx in raw_storage[alg]]
     
     if len(available_algs) == 0:
         return
 
-    # Kolory dla algorytmów (możesz dodać więcej, jeśli będziesz testować coś jeszcze)
     colors = {'GGL_PSOD_Raw': '#d9534f', 'GGL_PSOD_Modified': '#0275d8'}
     box_palette = ['#ff9999', '#9999ff']
 
-    # Tworzymy jeden wspólny rysunek: po lewej zbieżność, po prawej boxplot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     # -----------------------------------------------------------------
@@ -35,7 +31,6 @@ def generate_combined_plots(func_idx, raw_storage, history_storage):
             mean_curve = np.mean(histories, axis=0)
             iterations = np.arange(len(mean_curve))
             
-            # Skalowanie osi X do maksymalnie 6000 iteracji
             if len(mean_curve) <= 600:
                 iterations = iterations * (6000 / (len(mean_curve) - 1))
                 

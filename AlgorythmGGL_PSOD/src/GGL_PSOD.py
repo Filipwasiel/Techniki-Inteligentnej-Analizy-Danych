@@ -136,7 +136,6 @@ class GGL_PSOD_Modified(GGL_PSOD):
         Zoptymalizowana wersja GGL-PSOD wyposażona w Dual-Ring Topology (Modyfikacja 1)
         oraz Pamięć Tabu Stagnacji (Modyfikacja 2). Usunięto mechanizm Shake.
         """
-        # Czyszczenie historii przed nowym przebiegiem
         self.history = []
         
         # --- STRUKTURY DLA MODYFIKACJI 2 (PAMIĘĆ TABU) ---
@@ -149,7 +148,6 @@ class GGL_PSOD_Modified(GGL_PSOD):
         global_stagnation = 0
         
         for iter in range(self.max_iter):
-            # 1. Liniowa aktualizacja podstawowych parametrów GGL-PSOD (eq. 13-15)
             w = 0.9 - (iter / self.max_iter) * (0.9 - 0.4)
             c1 = 2.5 - (iter / self.max_iter) * (2.5 - 0.5)
             c2 = 0.5 + (iter / self.max_iter) * (2.5 - 0.5)
@@ -198,7 +196,7 @@ class GGL_PSOD_Modified(GGL_PSOD):
                         # Hybrydowe krzyżowanie: wiedza topologii pierścienia + zastrzyk genów elity
                         O_i[d] = r_d * self.pbest[n_i1, d] + (1 - r_d) * self.pbest[k_elite, d]
                     else:
-                        # Jeśli cząstka jest dobra (lepsza od średniej), zachowujemy standardowy GL-PSO Ring Topology
+                        # Jeśli cząstka jest dobra (lepsza od średniej), zachowujemy  Ring Topology
                         k = np.random.randint(0, self.ps)
                         if self.pbest_fit[i] < self.pbest_fit[k]:
                             r_d = np.random.rand()
@@ -206,7 +204,7 @@ class GGL_PSOD_Modified(GGL_PSOD):
                         else:
                             O_i[d] = self.pbest[k, d]
                 
-                # Mutacja egzemplarza (standard GL-PSO) - kluczowa do utrzymania różnorodności przy elicie
+                # Mutacja egzemplarza 
                 for d in range(self.dim):
                     if np.random.rand() < self.pm:
                         O_i[d] = np.random.uniform(self.lb, self.ub)
@@ -245,7 +243,7 @@ class GGL_PSOD_Modified(GGL_PSOD):
                     current_zone_ratio = 0.05 * (1.0 - iter / self.max_iter)
                     
                     for d in range(self.dim):
-                        # MODYFIKACJA 2: Sprawdzenie dystansu do STREFY TABU (a nie do skaczących najgorszych cząstek)
+                        # MODYFIKACJA 2: Sprawdzenie dystansu do STREFY TABU 
                         if abs(self.X[i, d] - tabu_zone[d]) < current_zone_ratio * max_dim_dist:
                             
                             # Stabilne odpychanie o charakterze kierunkowym od historycznego punktu utknięcia
@@ -254,7 +252,7 @@ class GGL_PSOD_Modified(GGL_PSOD):
                             
                             repulsion_vector[d] = repulsion_force + (0.05 * c_bad * direction_to_gbest * max_dim_dist)
                 
-                # Zbalansowane, zorientowane na sukces równanie prędkości cząstki
+                #równanie prędkości
                 self.V[i] = (
                     w * self.V[i]
                     + c1 * r1 * (self.E[i] - self.X[i])
@@ -275,10 +273,8 @@ class GGL_PSOD_Modified(GGL_PSOD):
                         self.gbest_fit = current_fit
                         self.gbest = np.copy(self.X[i])
             
-            # Zapis aktualnego gbest_fit na koniec iteracji
             self.history.append(self.gbest_fit)
             
-            # Monitorowanie postępu w konsoli
             if (iter + 1) % 100 == 0:
                 print(f"F{self.func_idx} Run{self.run_id+1} - Iteracja {iter+1}/{self.max_iter}, Najlepszy wynik: {self.gbest_fit:.5e}")
                 

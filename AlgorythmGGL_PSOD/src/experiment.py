@@ -3,7 +3,6 @@ import csv
 import os
 from concurrent.futures import ProcessPoolExecutor
 from cec2017.functions import all_functions
-# Zakładamy, że importujesz funkcję wykresów z pliku plots.py
 from src.plots import generate_combined_plots
 
 def run_single_experiment(params):
@@ -30,7 +29,6 @@ def run_single_experiment(params):
         return final_error, history_error
         
     except (NotImplementedError, KeyError):
-        # Bezpiecznie wychwytujemy błędy implementacji oraz błędy transformacji CEC2017 (Python 3.14)
         return np.nan, np.nan
 
 def run_experiments(algorithms, functions_to_test, dim, num_runs):
